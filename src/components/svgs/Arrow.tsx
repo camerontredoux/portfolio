@@ -22,7 +22,7 @@ export const Arrow: React.FC<ArrowProps> = ({ variants }) => {
         <motion.path
           variants={variants}
           transition={{
-            duration: 1.25,
+            duration: 1,
             ease: "easeInOut",
           }}
           stroke="#ABC4FF"

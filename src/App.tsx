@@ -1,5 +1,6 @@
 import { motion } from "framer-motion";
 import { FaGithub, FaLinkedinIn } from "react-icons/fa";
+import { useInView } from "react-intersection-observer";
 import { About } from "./components/sections/About";
 import { Navigation } from "./components/sections/Navigation";
 import { Projects } from "./components/sections/Projects";
@@ -7,6 +8,14 @@ import { Arrow } from "./components/svgs/Arrow";
 import { GithubGrid } from "./components/tools/GithubGrid";
 
 function App() {
+  const { ref: projRef, inView: projInView } = useInView({
+    threshold: 0.5,
+  });
+  const { ref: aboutRef, inView: aboutInView } = useInView({
+    threshold: 1,
+  });
+  const { ref: socialsRef, inView: socialsInView } = useInView();
+
   const drawLine = {
     initial: { opacity: 0.8, pathLength: 0, strokeWidth: 0 },
     hover: {
@@ -26,7 +35,7 @@ function App() {
 
   return (
     <div className="px-8 my-12 mx-auto max-w-4xl font-inter font-bold">
-      <Navigation />
+      <Navigation projInView={projInView} aboutInView={aboutInView} />
       <div className="relative">
         <motion.div
           whileHover="hover"
@@ -42,7 +51,7 @@ function App() {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 1, ease: "easeInOut", duration: 1 }}
-        className="text-md text-gray-500 px-1 mt-2"
+        className="text-base text-gray-500 px-1 mt-2"
       >
         I'm a third-year{" "}
         <span className="text-blue-400">computer science student</span> at CU
@@ -69,9 +78,9 @@ function App() {
         </div>
         {/* insert github contribution board, and most recent projects list, do something for linked in maybe */}
         <GithubGrid />
-        <div id="projects"></div>
+        <div ref={projRef} id="projects"></div>
         <Projects />
-        <div id="about"></div>
+        <div ref={aboutRef} id="about" className="mt-24"></div>
         <About />
       </motion.div>
       <div className="flex justify-center mt-20 h-12 font-normal text-sm">

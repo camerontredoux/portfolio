@@ -2,9 +2,15 @@ import { motion } from "framer-motion";
 import { useEffect, useState } from "react";
 import { FaChevronUp } from "react-icons/fa";
 
-interface NavigationProps {}
+interface NavigationProps {
+  projInView: boolean;
+  aboutInView: boolean;
+}
 
-export const Navigation: React.FC<NavigationProps> = () => {
+export const Navigation: React.FC<NavigationProps> = ({
+  projInView,
+  aboutInView,
+}) => {
   const [selected, setSelected] = useState(0);
 
   const [scrolled, setScrolled] = useState(false);
@@ -13,12 +19,19 @@ export const Navigation: React.FC<NavigationProps> = () => {
     if (!scrolled) {
       setSelected(0);
     }
+    if (projInView || !aboutInView) {
+      setSelected(0);
+    }
+    if (aboutInView) {
+      setSelected(1);
+    }
+
     window.addEventListener("scroll", handleScroll);
 
     return () => {
       window.removeEventListener("scroll", handleScroll);
     };
-  }, [scrolled]);
+  }, [scrolled, projInView, aboutInView]);
 
   const handleScroll = () => {
     if (window !== undefined) {
@@ -41,8 +54,8 @@ export const Navigation: React.FC<NavigationProps> = () => {
       href: "#about",
     },
     {
-      text: "socials",
-      href: "#socials",
+      text: "resume",
+      href: "#resume",
     },
   ];
 
@@ -52,7 +65,7 @@ export const Navigation: React.FC<NavigationProps> = () => {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 1, ease: "easeInOut" }}
-        src="src/assets/logo.png"
+        src="/logo.png"
         className="w-28"
         alt="Cameron's Logo"
       />
