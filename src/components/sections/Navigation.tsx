@@ -1,6 +1,7 @@
 import { motion } from "framer-motion";
 import { useEffect, useState } from "react";
 import { FaChevronUp } from "react-icons/fa";
+import Pdf from "/resume.pdf";
 
 interface NavigationProps {
   projInView: boolean;
@@ -44,6 +45,10 @@ export const Navigation: React.FC<NavigationProps> = ({
     }
   };
 
+  const handleResumeClick = () => {
+    window.open(Pdf);
+  };
+
   const links = [
     {
       text: "projects",
@@ -83,7 +88,11 @@ export const Navigation: React.FC<NavigationProps> = ({
       >
         {/* {`${inView}`} */}
         {links.map((link, index) => (
-          <a href={link.href} key={index}>
+          <a
+            onClick={link.text === "resume" ? handleResumeClick : () => {}}
+            href={link.href}
+            key={index}
+          >
             <motion.li className="relative" onClick={() => setSelected(index)}>
               {link.text}
               {index === selected && (
