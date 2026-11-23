@@ -362,7 +362,7 @@ const SLOOP=88;
 // Starlee's monoliths: moments about the two of you. Replace each line, and give img a photo (any URL or data: URL) to put it on the stone.
 const MEM_SLOT=20;   // their pictures live in atlas slots 20+
 // Starlee's monoliths float over the sea, one after another
-let MONO=[],monoFly=null;
+let MONO=[],monoFly=null,wPend=-1;
 // ---- a memory, opened: its photo dithers in at the centre of the screen; tap anywhere (or Esc) to let it go ----
 const memv=document.getElementById('memv'),mcv=memv.querySelector('canvas'),mcx=mcv.getContext('2d');let memS=null;
 function openMem(i){const m=MEM[i];if(!m)return;const im=new Image();im.onload=()=>{
@@ -382,7 +382,7 @@ function memTick(){const S2=memS;if(!S2)return;const k=Math.min(1,(performance.n
   if(S2.dir>0&&S2.p>.55)memv.classList.add('txt');
   if(k<1)requestAnimationFrame(memTick);else if(S2.dir<0){memS=null;memv.classList.remove('on');}}
 memv.addEventListener('click',e=>{e.stopPropagation();closeMem();});
-addEventListener('keydown',e=>{if(e.key==='Escape'&&memS)closeMem();});const MSP=32,MZ0=18,MST=()=>NARROW?14:12.5;   // spacing between monoliths, and how far back you rest from one
+addEventListener('keydown',e=>{if(e.key==='Escape'&&memS){closeMem();e.stopImmediatePropagation();}});const MSP=32,MZ0=18,MST=()=>NARROW?14:12.5;   // spacing between monoliths, and how far back you rest from one
 const monoB=()=>NARROW?[1.35,1.85,.14]:[1.55,2.15,.16];
 const stationZ=j=>MZ0+j*MSP-MST();
 function monoPos(j,nowS){const L=MONO.length*MSP,st=stationZ(j),z0=MZ0+j*MSP,z=z0+L*Math.round((camZ-st)/L);
@@ -459,11 +459,15 @@ function worldTap(x,y){const t=curW();
 addEventListener('wheel',e=>{
   // solar system view: the trackpad spins it. Fingers moving left (or scrolling down) turn it clockwise; right (or up) the other way.
   if(wz.k<0&&zoom.focus<0&&zoom.target===0&&bz.target===0&&mz.target===0&&!drag.on){e.preventDefault();
-    const k=e.deltaMode===1?16:1,dx=e.deltaX*k,dy=e.deltaY*k,d=Math.abs(dx)>Math.abs(dy)?dx:dy;
+    const k=e.deltaMode===1?16:1,dx=e.deltaX*k,dy=e.deltaY*k,d=-(Math.abs(dx)>Math.abs(dy)?dx:dy);
     sysA+=d*.0016;sysV=Math.max(-6,Math.min(6,sysV*.85+d*.012));return;}
+  // inside the black hole: the trackpad spins the disk, same as dragging
+  if(bz.target===1&&mz.target===0&&wz.k<0&&!drag.on){e.preventDefault();
+    const k=e.deltaMode===1?16:1,dx=e.deltaX*k,dy=e.deltaY*k,d=(Math.abs(dx)>Math.abs(dy)?dx:dy)/Math.max(20,bhScr.R*1.6)*.5;
+    bhSpin+=d;bhSpinV=Math.max(-14,Math.min(14,bhSpinV*.85+d*10));return;}
   // landed on a planet: the trackpad turns the planet (and its moons) the same way dragging does
   {const F=zoom.focus;if(wz.k<0&&F>=0&&zoom.target===1&&mz.target===0&&bz.target===0&&!drag.on){e.preventDefault();
-    const k=e.deltaMode===1?16:1,dx=e.deltaX*k,dy=e.deltaY*k,d=(Math.abs(dx)>Math.abs(dy)?dx:dy)/Math.max(60,pos[F].r)*.6;
+    const k=e.deltaMode===1?16:1,dx=e.deltaX*k,dy=e.deltaY*k,d=-(Math.abs(dx)>Math.abs(dy)?dx:dy)/Math.max(60,pos[F].r)*.6;
     PL[F].ph+=d;PL[F].moff+=d;spinV=Math.max(-6,Math.min(6,spinV*.85+d*8));return;}}
   if(wz.k<0||wz.target!==1)return;monoFly=null;e.preventDefault();wTouched=true;const t=curW(),d=e.deltaY+e.deltaX;
   if(t==='crater'){crZoom=Math.max(-.6,Math.min(1,crZoom-e.deltaY*.002));crYawT+=e.deltaX*.004;}
@@ -568,7 +572,7 @@ function tap(x,y){
   if(cardI>=0){closeCard();return;}                   // tapping away closes the card first
   if(zoom.focus>=0&&zoom.target===1){
     if(Math.hypot(x-CX,y-CY)>RB*1.08){if(factsK>=0)closeFacts();else zoomOut();}
-    else if(WT[zoom.focus]&&zoom.z>=1)enterWorld(zoom.focus);
+    else if(WT[zoom.focus]){if(zoom.z>=1)enterWorld(zoom.focus);else wPend=zoom.focus;}   // tapped while still zooming in: open as soon as it lands
     else factsK===zoom.focus?closeFacts():openFacts(zoom.focus);
     return;
   }
@@ -782,10 +786,10 @@ function frame(now){
     L.classList.remove('under');L.classList.toggle('flip',flip);L.firstChild.style.width=lead+'px';
     L.style.transform=flip?`translate(${x-rad-4}px,${y}px) translate(-100%,-50%)`:`translate(${x+rad+4}px,${y}px) translateY(-50%)`;
   });
-  // Starlee on desktop: her field notes stream in on their own once you've landed
-  {const on=!NARROW&&zoom.focus===3&&zoom.target===1&&zoom.z>=1&&mz.z===0&&mz.target===0&&wz.k<0&&bz.z===0;
-   if(!on){if(zoom.focus!==3||zoom.target!==1||wz.k>=0)factsAuto=false;}
-   else if(!factsAuto){factsAuto=true;if(factsK!==3)openFacts(3);}}
+    if(wPend>=0){if(zoom.focus!==wPend||zoom.target!==1)wPend=-1;else if(zoom.z>=1){const k=wPend;wPend=-1;enterWorld(k);}}
+  {const F2=zoom.focus,on=F2>=0&&zoom.target===1&&zoom.z>=1&&mz.z===0&&mz.target===0&&wz.k<0&&bz.z===0;   // every planet's field notes stream in on their own once you land
+   if(!on){if(F2<0||zoom.target!==1||wz.k>=0||factsAuto!==F2)factsAuto=false;}
+   else if(factsAuto!==F2){factsAuto=F2;if(factsK!==F2)openFacts(F2);}}
   // fact sheet: bottom left on desktop, under the planet on phones
   if(factsK>=0){
     factsTick();
