@@ -446,10 +446,7 @@ function worldDrag(dx,dy,dt){wTouched=true;const t=curW();
     else yawT=Math.max(-.45,Math.min(.45,yawT+dx*.0022));}
   if(t==='strata'){const {max}=SL();depth=Math.max(0,Math.min(max,depth-dy));depthV=depthV*.5+(-dy/dt)*.5;}}
 function worldTap(x,y){const t=curW();
-  if(t==='crater'){const u=crSite.u;if(!u.url)return;   /* tapping the shard opens the push on GitHub */const af=NARROW?1.65:1,yw=crYaw,dist=(7.6-1.8*crZoom)*af,ro=[Math.sin(yw)*dist,(4.6+.8*crZoom)*af,-Math.cos(yw)*dist],
-      f=[-ro[0],-.2-ro[1],-ro[2]],fl=Math.hypot(...f),fw=f.map(v=>v/fl);let rt=[fw[2],0,-fw[0]];const rl=Math.hypot(...rt);rt=rt.map(v=>v/rl);
-      const up=[fw[1]*rt[2]-fw[2]*rt[1],fw[2]*rt[0]-fw[0]*rt[2],fw[0]*rt[1]-fw[1]*rt[0]],q=project({ro,fw,rt,up},[0,.2,0]);
-    if(q&&Math.hypot(x-q.x,y-q.y)<1.4*q.k)window.open(u.url,'_blank','noopener');return;}
+  if(t==='crater')return;
   if(t==='gallery'){const T=GT_T,gy=NARROW?CY-30:CY-24;
     for(let ti=0;ti<GT.length;ti++){const cx=CX+(ti-galX)*(T+GT_G);if(Math.abs(x-cx)<T/2&&Math.abs(y-gy)<T/2){
       if(Math.abs(ti-galX)>.35)galT=ti;else openFromWorld(GT[ti].i);return;}}}
