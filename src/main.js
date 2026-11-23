@@ -473,9 +473,12 @@ addEventListener('wheel',e=>{
   if(t==='crater'){crZoom=Math.max(-.6,Math.min(1,crZoom-e.deltaY*.002));crYawT+=e.deltaX*.004;}
   if(t==='surface')camV=Math.max(-30,Math.min(30,camV+d*.025));
   if(t==='strata'){depthV+=d*2.6;}
-  if(t==='gallery'){const nw=performance.now();if(nw-galWT>200){galLock=false;wAcc=0;}galWT=nw;   // one card per swipe: a swipe (and its momentum) is one burst of wheel events
-    if(galLock)return;wAcc+=d;if(Math.abs(wAcc)>40){galT=Math.max(0,Math.min(GT.length-1,Math.round(galT)+Math.sign(wAcc)));wAcc=0;galLock=true;}}},{passive:false});
-let galWT=0,galLock=false;
+  if(t==='gallery'){   // one card per swipe. A swipe's coasting tail is a run of shrinking deltas; a new swipe starts the moment they grow again
+    const nw=performance.now(),k=e.deltaMode===1?16:1,dd=(Math.abs(e.deltaX)>Math.abs(e.deltaY)?e.deltaX:e.deltaY)*k,ad=Math.abs(dd);
+    if(nw-galWT>120||(galLock&&nw-galLT>90&&ad>galLA*1.4+3)||(galLock&&Math.sign(dd)!==galDir&&ad>4)){galLock=false;wAcc=0;}
+    galWT=nw;galLA=ad;
+    if(galLock)return;wAcc+=dd;if(Math.abs(wAcc)>24){galDir=Math.sign(wAcc);galT=Math.max(0,Math.min(GT.length-1,Math.round(galT)+galDir));wAcc=0;galLock=true;galLT=nw;}}},{passive:false});
+let galWT=0,galLock=false,galLA=0,galLT=0,galDir=0;
 // ---- project page in the moon view ----
 const projEl=document.getElementById('proj');
 const nImg=i=>ISL[i].logo!=null?1:Math.max(1,Math.min(2,ISL[i].imgs.length||2));
