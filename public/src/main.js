@@ -432,23 +432,23 @@ function letterLayout(el,r,tf){const t=el.textContent,w=el.offsetWidth;if(el.__m
   const sc=tf?1:r.width/(w||r.width),g=[],tw=document.createTreeWalker(el,NodeFilter.SHOW_TEXT);let n;
   while(n=tw.nextNode()){const cs=getComputedStyle(n.parentElement);if(+cs.opacity<.05)continue;const up=cs.textTransform==='uppercase',font=`${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`;
     for(let i=0;i<n.data.length;i++){const ch=n.data[i];if(!ch.trim())continue;const rg=document.createRange();rg.setStart(n,i);rg.setEnd(n,i+1);const b=rg.getClientRects()[0];if(!b)continue;
-      g.push({c:up?ch.toUpperCase():ch,x:(b.left+b.width/2-r.left)/sc,y:(b.top+b.height/2-r.top)/sc,f:font});}}
+      g.push({c:up?ch.toUpperCase():ch,x:(b.left+b.width/2-r.left)/sc,y:(b.top+b.height/2-r.top)/sc,w:b.width/sc,h:b.height/sc,f:font});}}
   if(tf)el.style.transform=prev;
   el.__ml={t,w,g,tf:!!tf,x0:r.left,y0:r.top};return el.__ml;}
-function drawMaskText(ctx,k,list){ctx.lineWidth=1;   // a thin outline: the cutout hugs the letters
+function drawMaskText(ctx,k,list,band){   // band: a flat dark strip behind each word, so a planet's changing surface never touches the lettersctx.lineWidth=1;   // a thin outline: the cutout hugs the letters
   for(const {el,op,r,tf,to} of list){const L=letterLayout(el,r,tf);ctx.globalAlpha=op;
     if(tf){const M=new DOMMatrix(tf),[ox,oy]=to.split(' ').map(parseFloat),P=(x,y)=>{const q=M.transformPoint(new DOMPoint(x-ox,y-oy,0,1));return [L.x0+ox+q.x/q.w,L.y0+oy+q.y/q.w];};
       for(const c of L.g){const [x,y]=P(c.x,c.y),[x1,y1]=P(c.x+1,c.y),[x2,y2]=P(c.x,c.y+1);ctx.setTransform(k*(x1-x),k*(y1-y),k*(x2-x),k*(y2-y),k*x,k*y);ctx.font=c.f;ctx.fillText(c.c,0,0);ctx.strokeText(c.c,0,0);}
       continue;}
     const sc=r.width/(el.offsetWidth||r.width);ctx.setTransform(k*sc,0,0,k*sc,k*r.left,k*r.top);
-    for(const c of L.g){ctx.font=c.f;ctx.fillText(c.c,c.x,c.y);ctx.strokeText(c.c,c.x,c.y);}}}
+    for(const c of L.g){if(band){ctx.fillRect(c.x-c.w/2-3,c.y-c.h*.38-2,c.w+6,c.h*.76+4);continue;}ctx.font=c.f;ctx.fillText(c.c,c.x,c.y);ctx.strokeText(c.c,c.x,c.y);}}}
 const MM=document.createElement('canvas'),mmx=MM.getContext('2d'),mmTex=gl.createTexture();let mmKey='';
 function drawMainMask(){const k=1/2,mw=Math.ceil(W*k),mh=Math.ceil(H*k),inW=wz.k>=0&&ew>=1&&curW()!=='gallery',
     txt=inW?[]:maskText(MAIN_MASK_SEL),key=mw+'x'+mh+':'+txt.map(t=>t.k).join('|');   // a world covers the solar system: nothing to clear
   gl.activeTexture(gl.TEXTURE4);gl.bindTexture(gl.TEXTURE_2D,mmTex);gl.uniform1i(U.u_tm,4);
   if(key!==mmKey){mmKey=key;if(MM.width!==mw||MM.height!==mh){MM.width=mw;MM.height=mh;}
     mmx.setTransform(1,0,0,1,0,0);mmx.clearRect(0,0,mw,mh);mmx.textAlign='center';mmx.textBaseline='middle';mmx.fillStyle=mmx.strokeStyle='#fff';mmx.lineWidth=3;
-    drawMaskText(mmx,k,txt);
+    drawMaskText(mmx,k,txt,true);
     gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,MM);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);
     gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);}
   gl.activeTexture(gl.TEXTURE0);}
