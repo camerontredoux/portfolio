@@ -465,7 +465,7 @@ vec4 strata(vec2 cell){
    if(dd<.12&&w_fade<.999) cell-=floor(vec2(1.,-.35)*pow(1.-dd/.12,2.)*7.+.5);}
   vec2 s=vec2((cell.x+.5)*w_cell,w_scr.y-(cell.y+.5)*w_cell);
   float r=distance(s,w_ctr.xy);
-  float d=w_dpr, x=s.x, wy=s.y-w_y0+w_depth, L, dk=1.; vec3 col=BONE;
+  float d=w_dpr, x=s.x, wy=s.y-w_y0+w_depth, L; vec3 col=BONE;
   if(wy<0.){
     float g=-(fbm(vec2(x*.0035/d,1.3))*.75+.25)*48.*d;
     if(wy>g){L=.42+.45*n2(vec2(x/d*.05,wy/d*.2))+(wy-g<2.5*w_cell?.35:0.);col=vec3(1.,.9,.74);}
@@ -487,7 +487,6 @@ vec4 strata(vec2 cell){
     else if(li>0&&dT<4.*w_cell)L=.8;                                    // with a bright lip under it
     if(li<4)L*=mix(.58,.42,float(li)/3.);                             // keep the rock dim so the story reads over it
     if(li>0&&dT<2.6*w_cell)L=.03; else if(li>0&&dT<4.*w_cell)L=.8;
-    {float m=texture(w_tm,s/(w_res*w_cell)).a;dk=mix(1.,.06,smoothstep(.03,.3,m));}   // only the dots under the letters themselves go dim
     for(int j=0;j<4;j++){vec4 F=w_fos[j];if(F.z<=0.)continue;          // fossils: your work, set into its era
       vec2 u=(vec2(x,wy)-F.xy)/F.zw, pad=3.*w_cell/F.zw;
       if(u.x>-pad.x&&u.x<1.+pad.x&&u.y>-pad.y&&u.y<1.+pad.y){
@@ -497,7 +496,7 @@ vec4 strata(vec2 cell){
           vec2 eu=min(u,1.-u)*F.zw;if(min(eu.x,eu.y)<1.6*w_cell)L=.95;}}}
   }
   if(r>w_rev-3.*w_cell){L=.95;col=vec3(1.,.88,.7);}                    // bright cut edge of the planet
-  return vec4(col*dk*mix(.76,1.05,clamp(L,0.,1.)),L>b8(cell)*.95+.04?1.:.5);
+  return vec4(col*mix(.76,1.05,clamp(L,0.,1.)),L>b8(cell)*.95+.04?1.:.5);
 }
 // ---- impact site: the comet's crater, seen from above, with the update it carried embedded at the centre ----
 const vec3 CSUN=vec3(-.55,.42,.72);
@@ -599,7 +598,8 @@ vec4 crater(vec2 cell){
    float g=exp(-pow(length(uv-c0)/.09,2.));L+=fl*g*.8;col=mix(col,vec3(1.,.82,.6),fl*g);}   // impact flash, local
   return vec4(col*mix(.76,1.05,clamp(L,0.,1.)),L>b8(cell)*.95+.04?1.:.5);
 }
-void main(){vec2 c=floor(gl_FragCoord.xy);o=w_mode<2.?surface(c):w_mode<4.?strata(c):crater(c);}`;
+void main(){vec2 c=floor(gl_FragCoord.xy);o=w_mode<2.?surface(c):w_mode<4.?strata(c):crater(c);
+  float m=texture(w_tm,vec2((c.x+.5)*w_cell,w_scr.y-(c.y+.5)*w_cell)/(w_res*w_cell)).a;o.rgb*=mix(1.,.06,smoothstep(.03,.3,m));}`;   // only the dots under letters go dim, so text reads over any world
 
 export const BFS = `#version 300 es
 precision highp float;

@@ -421,12 +421,22 @@ function measureGlyphs(){for(const el of worldEl.querySelectorAll('.sl,.fc')){co
   el.__g=g;el.__w=el.offsetWidth;el.__h=el.offsetHeight;}
   stEls={sl:[...worldEl.querySelectorAll('.sl')],fc:[...worldEl.querySelectorAll('.fc')]};labW=stEls.sl[0]?stEls.sl[0].__w:270;tmKey='';}
 const TM=document.createElement('canvas'),tmx=TM.getContext('2d'),tmTex=gl.createTexture();
-function drawGlyphMask(){const els=[...stEls.sl,...stEls.fc],key=wCols+'x'+wRows+':'+els.map(e=>e.style.opacity>0?e.__x+','+e.__y:'-').join('|');
+// every other piece of text over a world: wherever it is on screen, however it's transformed
+const MASK_SEL='#world>div:not(.sl):not(.fc),#where,#back,#rest';
+function maskText(){return [...document.querySelectorAll(MASK_SEL)].map(el=>{const op=+getComputedStyle(el).opacity,r=el.getBoundingClientRect();
+  return op<.05||!r.width?null:{el,op,r,k:Math.round(r.left)+','+Math.round(r.top)+','+r.width.toFixed(1)+','+op.toFixed(2)+','+el.textContent};}).filter(Boolean);}
+function drawMaskText(list){for(const {el,op,r} of list){const sc=r.width/(el.offsetWidth||r.width);tmx.globalAlpha=op;
+  const tw=document.createTreeWalker(el,NodeFilter.SHOW_TEXT);let n;while(n=tw.nextNode()){const cs=getComputedStyle(n.parentElement);if(+cs.opacity<.05)continue;
+    const up=cs.textTransform==='uppercase';tmx.font=`${cs.fontWeight} ${parseFloat(cs.fontSize)*sc}px ${cs.fontFamily}`;
+    for(let i=0;i<n.data.length;i++){const ch=n.data[i];if(!ch.trim())continue;const rg=document.createRange();rg.setStart(n,i);rg.setEnd(n,i+1);const b=rg.getClientRects()[0];if(!b)continue;
+      const c=up?ch.toUpperCase():ch,x=b.left+b.width/2,y=b.top+b.height/2;tmx.fillText(c,x,y);tmx.strokeText(c,x,y);}}}}
+function drawGlyphMask(){const els=[...stEls.sl,...stEls.fc].filter(e=>e.isConnected),txt=maskText(),key=wCols+'x'+wRows+':'+els.map(e=>e.style.opacity>0?e.__x+','+e.__y:'-').join('|')+'#'+txt.map(t=>t.k).join('|');
   if(key===tmKey){gl.activeTexture(gl.TEXTURE3);gl.bindTexture(gl.TEXTURE_2D,tmTex);gl.uniform1i(WU.w_tm,3);gl.activeTexture(gl.TEXTURE0);return;}tmKey=key;
   if(TM.width!==wCols||TM.height!==wRows){TM.width=wCols;TM.height=wRows;}const k=DPR/wCell;
   tmx.setTransform(1,0,0,1,0,0);tmx.clearRect(0,0,wCols,wRows);tmx.setTransform(k,0,0,k,0,0);tmx.textAlign='center';tmx.textBaseline='middle';tmx.fillStyle=tmx.strokeStyle='#fff';tmx.lineWidth=3;
   for(const el of els){if(!el.__g||+el.style.opacity<=0||el.__x==null)continue;tmx.globalAlpha=1;
     for(const c of el.__g){tmx.font=c.f;tmx.fillText(c.c,el.__x+c.x,el.__y+c.y);tmx.strokeText(c.c,el.__x+c.x,el.__y+c.y);}}
+  drawMaskText(txt);
   gl.activeTexture(gl.TEXTURE3);gl.bindTexture(gl.TEXTURE_2D,tmTex);gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,TM);
   gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);
   gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);gl.uniform1i(WU.w_tm,3);gl.activeTexture(gl.TEXTURE0);}
@@ -967,7 +977,7 @@ function frame(now){
     gl.uniform1fv(WU.w_lay,new Float32Array([0,L.LH,2*L.LH,3*L.LH,4*L.LH,1e7].map(v=>v*DPR)));
     {const fo=FOS(),fv=new Float32Array(16),fsl=new Float32Array(4);fo.forEach((f,j)=>{fv.set([f.x*DPR,f.y*DPR,f.s*DPR,f.s*DPR],j*4);fsl[j]=f.lg;});
      gl.uniform4fv(WU.w_fos,fv);gl.uniform1fv(WU.w_fosS,fsl);}
-    gl.activeTexture(gl.TEXTURE0);gl.bindTexture(gl.TEXTURE_2D,tex);gl.uniform1i(WU.w_atl,0);gl.activeTexture(gl.TEXTURE2);gl.bindTexture(gl.TEXTURE_2D,ltex);gl.uniform1i(WU.w_logo,2);if(curW()==='strata')drawGlyphMask();
+    gl.activeTexture(gl.TEXTURE0);gl.bindTexture(gl.TEXTURE_2D,tex);gl.uniform1i(WU.w_atl,0);gl.activeTexture(gl.TEXTURE2);gl.bindTexture(gl.TEXTURE_2D,ltex);gl.uniform1i(WU.w_logo,2);drawGlyphMask();
     gl.drawArrays(gl.TRIANGLES,0,3);
     gl.bindFramebuffer(gl.FRAMEBUFFER,null);gl.viewport(0,0,cv.width,cv.height);
     gl.useProgram(bpr);gl.activeTexture(gl.TEXTURE1);gl.bindTexture(gl.TEXTURE_2D,wtex);gl.uniform1i(BU.b_tex,1);gl.uniform1f(BU.b_cell,wCell);
