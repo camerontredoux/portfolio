@@ -461,6 +461,10 @@ addEventListener('wheel',e=>{
   if(wz.k<0&&zoom.focus<0&&zoom.target===0&&bz.target===0&&mz.target===0&&!drag.on){e.preventDefault();
     const k=e.deltaMode===1?16:1,dx=e.deltaX*k,dy=e.deltaY*k,d=Math.abs(dx)>Math.abs(dy)?dx:dy;
     sysA+=d*.0016;sysV=Math.max(-6,Math.min(6,sysV*.85+d*.012));return;}
+  // landed on a planet: the trackpad turns the planet (and its moons) the same way dragging does
+  {const F=zoom.focus;if(wz.k<0&&F>=0&&zoom.target===1&&mz.target===0&&bz.target===0&&!drag.on){e.preventDefault();
+    const k=e.deltaMode===1?16:1,dx=e.deltaX*k,dy=e.deltaY*k,d=(Math.abs(dx)>Math.abs(dy)?dx:dy)/Math.max(60,pos[F].r)*.6;
+    PL[F].ph+=d;PL[F].moff+=d;spinV=Math.max(-6,Math.min(6,spinV*.85+d*8));return;}}
   if(wz.k<0||wz.target!==1)return;monoFly=null;e.preventDefault();wTouched=true;const t=curW(),d=e.deltaY+e.deltaX;
   if(t==='crater'){crZoom=Math.max(-.6,Math.min(1,crZoom-e.deltaY*.002));crYawT+=e.deltaX*.004;}
   if(t==='surface')camV=Math.max(-30,Math.min(30,camV+d*.025));
