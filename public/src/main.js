@@ -3,9 +3,6 @@ import { startCometFeed, nextComet, ago, loadCraters, saveCraters } from './come
 import { ISL, PLN, APPN, SUP, FACTS, SCAPS, STRATA, MEM } from './content.js';
 import { renderFallback } from './fallback.js';
 
-// quality: the planet worlds (Starlee's ocean, the Resume dig, impact sites) are the only heavy scenes.
-// If they run slow, their pixels get a little coarser; the solar system itself always draws at full detail.
-let wQ=1,qT=0,qN=0,qSince=0;
 
 const cv = document.getElementById('c');
 const gl = cv.getContext('webgl2', {antialias: false, premultipliedAlpha: false});
@@ -29,7 +26,7 @@ const wpr=mk(WVS,WFS),bpr=mk(WVS,BFS),WU={},BU={};
 for(const n of['w_res','w_scr','w_cam','w_cell','w_t','w_mode','w_fade','w_e','w_depth','w_y0','w_dpr','w_rev','w_ctr','w_lbx','w_cr','w_mono','w_monoS','w_monoV','w_monoB','w_mn','w_mf','w_lay','w_fos','w_fosS','w_atl','w_logo','w_tm'])WU[n]=gl.getUniformLocation(wpr,n);
 for(const n of['b_tex','b_cell'])BU[n]=gl.getUniformLocation(bpr,n);
 const wvao=gl.createVertexArray(),wtex=gl.createTexture(),wfb=gl.createFramebuffer();let wCols=1,wRows=1,wCell=4;
-function makeFBO(){wCell=Math.round(SBD*wQ);wCols=Math.ceil(cv.width/wCell);wRows=Math.ceil(cv.height/wCell);
+function makeFBO(){wCell=Math.round(SBD);wCols=Math.ceil(cv.width/wCell);wRows=Math.ceil(cv.height/wCell);
   gl.activeTexture(gl.TEXTURE1);gl.bindTexture(gl.TEXTURE_2D,wtex);
   gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA8,wCols,wRows,0,gl.RGBA,gl.UNSIGNED_BYTE,null);
   gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.NEAREST);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.NEAREST);
@@ -620,9 +617,6 @@ const ease=t=>t<.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2;
 const sstep=(a,b,x)=>{const t=Math.min(Math.max((x-a)/(b-a),0),1);return t*t*(3-2*t);};
 
 function frame(now){
-  // adaptive quality: if the last few seconds averaged under ~40fps, render at a lower pixel ratio (never below 1)
-  {const raw=now-last,inW=wz.k>=0&&ew>=1&&curW()!=='gallery';if(inW&&!document.hidden&&raw<250&&now-qSince>2500){qT+=raw;qN++;}else if(!inW){qT=qN=0;}
-   if(qN>=120){const avg=qT/qN;qT=qN=0;if(avg>26&&wQ<2){wQ=Math.min(2,wQ+.5);qSince=now;makeFBO();}}}
   const dt=Math.min((now-last)/1000,.05);last=now;
   simT+=dt*(reduce?0:1);
   // springs instead of easing: the scatter overshoots and wobbles back when you move off
