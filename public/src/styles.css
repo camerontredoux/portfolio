@@ -102,7 +102,8 @@ button:focus-visible{outline:1px solid var(--dim);outline-offset:3px}
 #world .imp{text-shadow:var(--h);left:50%;top:auto;bottom:86px;transform:translateX(-50%);width:min(440px,86vw);text-align:center;line-height:1.6;transition:opacity .4s}
 #world .imp .k{color:#ff7a4f}#world .imp .n{font-size:22px;text-transform:none;letter-spacing:.01em;margin:4px 0}
 #world .imp .x{color:#f6f2ea;text-transform:none;letter-spacing:.01em;font-size:12.5px}
-#world .imp .b{display:flex;gap:20px;justify-content:center;margin-top:12px;color:#d9d4ca;font-size:10.5px}#world .imp button,#world .imp a{color:var(--ink);pointer-events:auto}#world .imp a{text-decoration:none;border-bottom:1px solid var(--dim)}
+#world .imp .b{display:flex;gap:20px;justify-content:center;align-items:baseline;margin-top:12px;color:#d9d4ca;font-size:10.5px}#world .imp button,#world .imp a{color:var(--ink);pointer-events:auto}#world .imp a{text-decoration:underline 1px var(--dim);text-underline-offset:4px}
+#world .imp .n,#world .imp .x,#world .imp a,#world .imp button{color:#fff;text-shadow:0 0 1px #000,0 0 2px #000,0 0 8px rgba(255,255,255,.28)}
 @media(max-width:699px){#world .imp .n{font-size:18px}#world .imp{bottom:80px}}
 #world .wh{left:50%;top:auto;bottom:54px;transform:translateX(-50%);color:var(--dim);font-size:10.5px;white-space:nowrap;transition:opacity .6s}
 #lhint{position:fixed;left:0;top:0;z-index:2;color:var(--dim);font-size:10px;white-space:nowrap;opacity:0;pointer-events:none;transition:opacity .4s}

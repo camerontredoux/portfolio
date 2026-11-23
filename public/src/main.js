@@ -859,7 +859,7 @@ function frame(now){
   }
   // moon tooltip
   {let mi=F<0&&zoom.z===0?pickMoon(m.tx,m.ty):-1;if(mi===cardI)mi=-1;
-   if(NARROW||cardI>=0)mi=-1;
+   if(NARROW||cardI>=0||mz.target===1||mz.z>0||bz.target===1||bz.z>0)mi=-1;
    if(mi>=0){const s=ISL[mi],q=moonPos[mi];mtip.firstChild.textContent=s.t;
      const dd=mtip.lastChild;dd.textContent=s.d;dd.className=mi===4&&waiting?'w':'';
      mtip.style.opacity=1;mtip.style.transform=`translate(${q.x+q.r+8}px,${q.y}px) translateY(-50%)`;}
