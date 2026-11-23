@@ -439,7 +439,7 @@ function openFromWorld(i){const mo=MOONS[i];exitWorld();
     else if(ISL[i].p===zoom.focus){mz.i=i;mz.target=1;}
     else{zoomTo(ISL[i].p);mz.pending=i;}},1250);}
 function worldDrag(dx,dy,dt){wTouched=true;const t=curW();
-  if(t==='crater'){crYawT+=dx*.006;crZoom=Math.max(-.6,Math.min(1,crZoom-dy*.004));return;}
+  if(t==='crater'){crYawT-=dx*.006;crZoom=Math.max(-.6,Math.min(1,crZoom-dy*.004));return;}
   if(t==='gallery'){const d=-dx/(GT_T+GT_G);galX=Math.max(-.4,Math.min(GT.length-.6,galX+d));galVel=galVel*.5+d/dt*.5;galT=galX;}
   if(t==='surface'){if(!drag.axis)drag.axis=Math.abs(dy)>=Math.abs(dx)*.8?'y':'x';
     if(drag.axis==='y'){camZ+=-dy*(MSP*1.8/H);camV=0;(drag.zh=drag.zh||[]).push([performance.now(),camZ]);while(drag.zh.length>12)drag.zh.shift();}
@@ -472,7 +472,7 @@ function spinTarget(){
 addEventListener('wheel',e=>{
   {const T=spinTarget();if(T){e.preventDefault();T.nudge(wheelAmount(e)*T.scale);return;}}
   if(wz.k<0||wz.target!==1)return;monoFly=null;e.preventDefault();wTouched=true;const t=curW(),d=e.deltaY+e.deltaX;
-  if(t==='crater'){crZoom=Math.max(-.6,Math.min(1,crZoom-e.deltaY*.002));crYawT+=e.deltaX*.004;}
+  if(t==='crater'){crZoom=Math.max(-.6,Math.min(1,crZoom-e.deltaY*.002));crYawT-=e.deltaX*.004;}
   if(t==='surface')camV=Math.max(-30,Math.min(30,camV+d*.025));
   if(t==='strata'){depthV+=d*2.6;}
   if(t==='gallery'){   // one card per swipe. A swipe's coasting tail is a run of shrinking deltas; a new swipe starts the moment they grow again

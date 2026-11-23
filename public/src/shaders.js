@@ -551,10 +551,10 @@ vec4 crater(vec2 cell){
     float fog=1.-exp(-t*.05);L=mix(L,.0,fog);
     {vec2 u2=(cell+.5)/w_res;L*=mix(.35,1.,smoothstep(.0,.38,u2.y));}   // darker foreground so the text below reads
   } else { L=0.;vec2 g=floor(vec2(atan(rd.x,rd.z),rd.y)*160.);if(hh(g)>.985)L=.5*hh(g+3.); }
-  // a rising column of dithered smoke while it's hot
-  {vec3 sm=ro+rd*clamp(dot(-ro,rd),0.,60.);float rr=length(sm.xz),hy=sm.y+.4;
-   float smoke=heat*smoothstep(1.,0.,rr/(.6+hy*.35))*smoothstep(-.5,.5,hy)*smoothstep(7.,2.,hy)*n2(vec2(rr*2.,hy*1.5-w_t*.8));
-   if(smoke>.18&&!sh){L=max(L,smoke*.55);col=mix(col,vec3(.8,.75,.7),.6);}}
+  // a thin wisp of smoke rises after the impact, then clears
+  {float puff=smoothstep(.8,1.6,age)*(1.-smoothstep(3.5,8.,age));vec3 sm=ro+rd*clamp(dot(-ro,rd),0.,60.);float rr=length(sm.xz),hy=sm.y+.4;
+   float smoke=puff*smoothstep(1.,0.,rr/(.3+hy*.22))*smoothstep(-.5,.5,hy)*smoothstep(6.,1.5,hy)*n2(vec2(rr*5.,hy*3.-w_t*1.2));
+   if(smoke>.35&&!sh){L=max(L,smoke*.5);col=mix(col,vec3(.8,.75,.7),.6);}}
   // ---- the meteor: arcs in from over the horizon, accelerating, a burning rock dragging fire and smoke ----
   float ps=1.15;
   float ma=(w_cr.x+(3.2-.6))/3.2;                                      // 0..1 over the approach
