@@ -472,7 +472,7 @@ function spinTarget(){
 addEventListener('wheel',e=>{
   {const T=spinTarget();if(T){e.preventDefault();T.nudge(wheelAmount(e)*T.scale);return;}}
   if(wz.k<0||wz.target!==1)return;monoFly=null;e.preventDefault();wTouched=true;const t=curW(),d=e.deltaY+e.deltaX;
-  if(t==='crater'){crZoom=Math.max(-.6,Math.min(1,crZoom-e.deltaY*.002));crYawT-=e.deltaX*.004;}
+  if(t==='crater'){crZoom=Math.max(-.6,Math.min(1,crZoom-e.deltaY*.002));crYawT-=SPIN_X*e.deltaX*.004;}   // the camera circles, so the ground turns the way the planets do
   if(t==='surface')camV=Math.max(-30,Math.min(30,camV+d*.025));
   if(t==='strata'){depthV+=d*2.6;}
   if(t==='gallery'){   // one card per swipe. A swipe's coasting tail is a run of shrinking deltas; a new swipe starts the moment they grow again
@@ -916,7 +916,7 @@ function frame(now){
   if(crPend&&zoom.focus===crPend.p&&zoom.z>=1&&zoom.target===1){const c=crPend;crPend=null;enterCrater(c);}
   if(wz.k>=0&&curW()==='crater'){crRep+=dt*1.5;if(!drag.on)crYawT+=dt*.05;crYaw+=(crYawT-crYaw)*Math.min(1,dt*4);
     const el=worldEl.querySelector('.imp'),wh=worldEl.querySelector('.wh');const blast=sstep(CR_MT+.1,CR_MT+.9,crRep);   // text arrives with the explosion
-    if(el){el.style.opacity=(sstep(.85,1,ew)*blast).toFixed(3);el.style.pointerEvents=blast>.5?'':'none';}
+    if(el){const op=sstep(.85,1,ew)*blast;el.style.opacity=op.toFixed(3);el.classList.toggle('live',op>.97);}
     if(wh)wh.style.opacity=wTouched?0:.8*sstep(.85,1,ew)*blast;
     const tw=(wz.target===1)?'← Back to '+APPN[wz.k]:back.textContent;if(back.textContent!==tw)back.textContent=tw;}
   // hint under the landed planet's name, for planets with a world inside
