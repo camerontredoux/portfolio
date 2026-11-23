@@ -307,18 +307,20 @@ function openFacts(k){
   factsRows.push([factsEl.lastChild,'“'+f.q+'”',null,'']);
   // lock the width to the fully typed sheet so nothing shifts while it streams in
   factsEl.style.width='';
-  factsRows.forEach(([ke,kt,ve,vt])=>{ke.textContent=kt;if(ve)ve.textContent=vt;});
+  factsRows.forEach(([ke,kt,ve,vt])=>{ke.textContent=kt;if(ve)setFactValue(ve,vt);});
   factsEl.style.width=Math.ceil(factsEl.getBoundingClientRect().width+12)+'px';
   factsRows.forEach(([ke,kt,ve])=>{ke.textContent='';if(ve)ve.textContent='';});
   factsEl.classList.add('show');
 }
+function setFactValue(el,s){const i=s.indexOf('⊕');if(i<0){el.textContent=s;return;}
+  const e=document.createElement('span');e.className='earth';e.textContent='⊕';el.textContent=s.slice(0,i);el.append(e,s.slice(i+1));}
 function closeFacts(){factsK=-1;factsEl.classList.remove('show');}
 function factsTick(){
   if(factsK<0)return;let n=Math.floor((performance.now()-factsT0)/12);
   factsEl.querySelectorAll('.cur').forEach(c=>c.remove());
   for(const [ke,kt,ve,vt] of factsRows){
     const a=Math.max(0,Math.min(kt.length,n));ke.textContent=kt.slice(0,a);n-=kt.length;
-    if(ve){const b=Math.max(0,Math.min(vt.length,n));ve.textContent=vt.slice(0,b);n-=vt.length;
+    if(ve){const b=Math.max(0,Math.min(vt.length,n));setFactValue(ve,vt.slice(0,b));n-=vt.length;
       if(n<0&&a+b>0){const c=document.createElement('span');c.className='cur';(b>0?ve:ke).appendChild(c);break;}}
     else if(n<0&&a>0){const c=document.createElement('span');c.className='cur';ke.appendChild(c);break;}
   }
@@ -575,7 +577,7 @@ function tap(x,y){
     mpulse[mi]=performance.now()/1000;ring2.i=mi;ring2.t0=mpulse[mi];flash(islLabs[mi]);
     mz.i=mi;mz.target=1;closeFacts();return;}
   if(mi>=0){clickMoon(mi);return;}                    // orbit view: pulse, ring, and its window card
-  if(cardI>=0){closeCard();return;}                   // tapping away closes the card first
+  if(cardI>=0){closeCard();if(zoom.focus>=0||pick(x,y)<0)return;}   // tapping away closes the card; tapping a planet also goes to it
   if(zoom.focus>=0&&zoom.target===1){
     if(Math.hypot(x-CX,y-CY)>RB*1.08)zoomOut();
     else if(WT[zoom.focus]){if(zoom.z>=1)enterWorld(zoom.focus);else wPend=zoom.focus;}   // tapped while still zooming in: open as soon as it lands

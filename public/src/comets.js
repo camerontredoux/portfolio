@@ -1,6 +1,6 @@
 const SEEN_KEY = 'comets:seen';
 const CRATERS_KEY = 'comets:craters';
-const FIRST_VISIT = 3;
+const FIRST_VISIT = 5;
 const PING_MS = 30 * 1000;
 const RECONNECT_MS = 5 * 1000;
 

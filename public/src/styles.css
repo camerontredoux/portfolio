@@ -54,7 +54,7 @@ button:focus-visible{outline:1px solid var(--dim);outline-offset:3px}
 #facts .h{color:var(--ink);margin-bottom:6px}
 #facts .h sup{color:var(--dim)}
 #facts .k{color:var(--dim)}
-#facts .v{color:var(--ink);text-transform:none;letter-spacing:.02em}
+#facts .v{color:var(--ink);text-transform:none;letter-spacing:.02em}#facts .earth{font-size:1.5em;line-height:0;vertical-align:-.08em}
 #facts .q{color:var(--dim);text-transform:none;letter-spacing:.02em;margin-top:6px;font-style:italic}
 #facts .cur{display:inline-block;width:.55em;height:1em;background:var(--ink);vertical-align:-2px;margin-left:1px;animation:blink 1s steps(1) infinite}
 /* project page: sits beside the moon (below it on phones), same type and glow as the labels */
