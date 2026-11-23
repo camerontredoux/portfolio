@@ -1,4 +1,5 @@
 const SEEN_KEY = 'comets:seen';
+const CRATERS_KEY = 'comets:craters';
 const FIRST_VISIT = 3;
 const PING_MS = 30 * 1000;
 const RECONNECT_MS = 5 * 1000;
@@ -37,6 +38,16 @@ export function nextComet() {
   if (!c) return null;
   if (!seen || c.at > seen) { seen = c.at; writeSeen(seen); }
   return c;
+}
+
+export function loadCraters() {
+  try {
+    const list = JSON.parse(localStorage.getItem(CRATERS_KEY));
+    return Array.isArray(list) ? list.filter((c) => Number.isInteger(c?.p) && Array.isArray(c.d) && c.d.length === 3 && c.u?.at).map((c) => ({ ...c, ack: c.ack === true })) : [];
+  } catch { return []; }
+}
+export function saveCraters(list) {
+  try { localStorage.setItem(CRATERS_KEY, JSON.stringify(list)); } catch {}
 }
 
 export function ago(iso) {

@@ -1,5 +1,5 @@
 import { VS, FS, WVS, WFS, BFS } from './shaders.js';
-import { startCometFeed, nextComet, ago } from './comets.js';
+import { startCometFeed, nextComet, ago, loadCraters, saveCraters } from './comets.js';
 import { ISL, PLN, APPN, SUP, FACTS, SCAPS, STRATA, MEM } from './content.js';
 import { renderFallback } from './fallback.js';
 
@@ -178,12 +178,12 @@ function launch(k,pr){comet.pr=pr||null;
 const CR_MT=3.2;   // seconds the meteor spends flying in
 let crSite=null,crRep=0,crYaw=0,crYawT=0,crZoom=0;
 // where a crater sits on screen right now (it turns with its planet); null if it's on the far side or faded
-function craterScreen(c){const k=c.p,P=pos[k];if(!P)return null;const age=c.ack?performance.now()/1000-c.t:1;if(age>60)return null;
+function craterScreen(c){const k=c.p,P=pos[k];if(!P)return null;
   const ph=PL[k].ph,cs=Math.cos(ph),sn=Math.sin(ph),[dx,dy,dz]=c.d,nx=cs*dx-sn*dz,nz=sn*dx+cs*dz;
   if(nz<.25)return null;return {x:P.x+nx*P.r,y:P.y+dy*P.r,r:Math.max(16,P.r*.24)};}
 function pickCrater(x,y){let best=null,bd=1e9;for(const c of craters){const q=craterScreen(c);if(!q)continue;const d=Math.hypot(x-q.x,y-q.y);if(d<q.r&&d<bd){bd=d;best=c;}}return best;}
 let crPend=null;
-function enterCrater(c){if(!c.ack){c.ack=true;c.t=performance.now()/1000-1.5;}   // seen: now it can cool
+function enterCrater(c){if(!c.ack){c.ack=true;c.t=performance.now()/1000-1.5;syncCraters();}   // seen: now it can cool
   const q=craterScreen(c)||{x:CX,y:CY};const u=c.u;
   crSite={t:c.t,sx:q.x,sy:q.y,slot:MERGE_SLOT,u,p:c.p};crRep=.3;crYaw=crYawT=.6;crZoom=0;   /* meteor already on its way as the scene fades in */
   closeFacts();wz.k=c.p;wz.mode='crater';wz.target=1;wTouched=false;
@@ -191,16 +191,18 @@ function enterCrater(c){if(!c.ack){c.ack=true;c.t=performance.now()/1000-1.5;}  
   worldEl.innerHTML=`<div class="imp"><div class="k">pushed · ${esc(u.name)} · ${esc(u.branch)} · ${ago(u.at)}</div><div class="n">${esc(u.title)}</div>${u.line?`<div class="x">${esc(u.line)}</div>`:''}`+
     `<div class="b">${u.url?`<a href="${esc(u.url)}" target="_blank" rel="noopener">view on GitHub ↗</a>`:''}<button id="rp">↺ replay impact</button></div></div><div class="wh">drag to circle the crater</div>`;
   worldEl.querySelector('#rp').onclick=e=>{e.stopPropagation();crRep=0;};}
-const craters=[],crU=new Float32Array(24),crP=new Float32Array(6).fill(-9);
+const MAX_CRATERS=5,COOL_AGE=10,craters=[],crU=new Float32Array(24),crP=new Float32Array(6).fill(-9);
 const ACT0=[1,.6,.15,.5,.35],act=[...ACT0];
+function syncCraters(){
+  while(craters.length>MAX_CRATERS)craters.shift();
+  crU.fill(0);crP.fill(-9);craters.forEach((c,i)=>{crU.set([...c.d,c.t],i*4);crP[i]=c.p;});
+  saveCraters(craters.map(({p,d,u,ack})=>({p,d,u,ack:!!ack})));}
 function impact(k){
   const P=pos[k];ck.x=P.x;ck.y=P.y;ck.t0=performance.now()/1000;
   // crater where the comet struck: the side of the sphere facing its approach, stored in the planet's own frame so it spins with it
   {let nx=-Math.cos(comet.ang)*.8,ny=-Math.sin(comet.ang)*.8,nz=.6;const l=Math.hypot(nx,ny,nz);nx/=l;ny/=l;nz/=l;
    const ph=PL[k].ph,cs=Math.cos(ph),sn=Math.sin(ph);
-   craters.push({p:k,d:[cs*nx+sn*nz,ny,-sn*nx+cs*nz],t:performance.now()/1000,u:comet.pr});
-   if(craters.length>6)craters.shift();
-   crU.fill(0);crP.fill(-9);craters.forEach((c,i)=>{crU.set([...c.d,c.t],i*4);crP[i]=c.p;});}
+   craters.push({p:k,d:[cs*nx+sn*nz,ny,-sn*nx+cs*nz],t:performance.now()/1000,u:comet.pr});syncCraters();}
   act[k]=Math.min(2,act[k]+.9);
   if(k===4)setWaiting(true);
   else{const d=labs[k].lastElementChild,old=d.dataset.o||(d.dataset.o=d.textContent);
@@ -916,7 +918,7 @@ function frame(now){
     }
   }
   if(crPend&&zoom.focus===crPend.p&&zoom.z>=1&&zoom.target===1){const c=crPend;crPend=null;enterCrater(c);}
-  if(wz.k>=0&&curW()==='crater'){crRep+=dt;if(!drag.on)crYawT+=dt*.05;crYaw+=(crYawT-crYaw)*Math.min(1,dt*4);
+  if(wz.k>=0&&curW()==='crater'){crRep+=dt*1.5;if(!drag.on)crYawT+=dt*.05;crYaw+=(crYawT-crYaw)*Math.min(1,dt*4);
     const el=worldEl.querySelector('.imp'),wh=worldEl.querySelector('.wh');const blast=sstep(CR_MT+.1,CR_MT+.9,crRep);   // text arrives with the explosion
     if(el){el.style.opacity=(sstep(.85,1,ew)*blast).toFixed(3);el.style.pointerEvents=blast>.5?'':'none';}
     if(wh)wh.style.opacity=wTouched?0:.8*sstep(.85,1,ew)*blast;
@@ -938,7 +940,7 @@ function frame(now){
   gl.uniform4f(U.u_big,F>=0?pos[F].x:0,F>=0?pos[F].y:0,F>=0?pos[F].r:0,F>=0?PL[F].ph:0);
   gl.uniform4fv(U.u_isl,islU);gl.uniform1fv(U.u_islP,islP);gl.uniform3fv(U.u_L,lU);gl.uniform3f(U.u_sun,sunH,sunA,sunT);grab.hv+=((grab.k>=0?1:0)-grab.hv)*.15;gl.uniform4f(U.u_mv,mvPos.x,mvPos.y,mvPos.r,mz.i);gl.uniform2f(U.u_mv2,e2,mvA);
   {const q=moonPos[ring2.i]||{x:0,y:0,r:0};gl.uniform4f(U.u_mring,q.x,q.y,performance.now()/1000-ring2.t0,q.r);}
-  craters.forEach((c,i)=>{crU[i*4+3]=c.ack?c.t:now/1000-1.5;});   // unseen craters stay red-hot
+  craters.forEach((c,i)=>{crU[i*4+3]=now/1000-(c.ack?Math.min(COOL_AGE,now/1000-c.t):1.5);});   // unseen craters stay red-hot
   gl.uniform2f(U.u_hl,grab.hl,grab.hv);gl.uniform4fv(U.u_moon,moonU);gl.uniform1fv(U.u_moonS,moonS);gl.uniform4f(U.u_bh,bhScr.x,bhScr.y,bhScr.R,Math.max(0,1-(performance.now()/1000-bhPulse)/1.6));gl.uniform4fv(U.u_cr,crU);gl.uniform1fv(U.u_crP,crP);gl.uniform1fv(U.u_act,act);gl.uniform1fv(U.u_moonP,moonP);
   gl.uniform1f(U.u_bhc,BH_CENTER?1:0);{let ck=-1,cd=1e9;PL.forEach((_,k)=>{const q=P0[k];if(k===HIDE_PL||!q||k===zoom.focus)return;const d=Math.hypot(q.x-BH0.x,q.y-BH0.y)-PL[k].r*S;if(d<cd){cd=d;ck=k;}});for(let k=0;k<5;k++)feedW[k]+=((k===ck?1:0)-feedW[k])*Math.min(1,dt*(k===ck?1.2:6));gl.uniform1fv(U.u_feed,feedW);
    for(let k=0;k<5;k++){const q=P0[k];nearW[k]=0;if(!q||k===HIDE_PL||!BH_CENTER)continue;const d=Math.hypot(q.x-BH0.x,q.y-BH0.y);nearW[k]=Math.max(0,Math.min(1,1-(d-PL[k].r*S-BH0.R*1.3)/(BH0.R*8)))*feedW[k];}
@@ -1051,6 +1053,7 @@ ISL.forEach((it,i)=>it.imgs.slice(0,2).forEach((src,k)=>{const im=new Image();im
   ag.drawImage(im,(256-im.width*sc)/2,(256-im.height*sc)/2,im.width*sc,im.height*sc);ag.restore();uploadAtlas();};im.src=src;}));
 // starting states from the content: archived projects begin in the black hole, works in progress in the belt
 ISL.forEach((it,i)=>{const mo=MOONS[i];if(it.status==='archive'){mo.st='gone';swallowed.push(i);}else if(it.status==='wip'){mo.st='belt';mo.ba0=i*1.7;}});
-PL.forEach((_,k)=>reslot(k));updCounts();setTimeout(openBySlug,700);startCometFeed();
+PL.forEach((_,k)=>reslot(k));updCounts();setTimeout(openBySlug,700);
+for(const c of loadCraters())craters.push({...c,t:performance.now()/1000-(c.ack?90:0)});syncCraters();startCometFeed();
 requestAnimationFrame(frame);
 requestAnimationFrame(()=>requestAnimationFrame(()=>document.body.classList.remove('loading')));

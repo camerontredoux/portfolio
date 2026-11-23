@@ -127,7 +127,7 @@ float surf(vec2 q,int k,float ph,float bi,float seaK,out float ring,out float li
     float tw=.8+.2*sin(u_t*2.6+dot(r,vec3(41.,23.,57.))*3.);
     g_city=step(bi*.75+.18,cl*mix(.62,1.,night)*tw*(.75+.5*act)*rim);
   }
-  // notification craters: dark floor, bright rim, red-hot for the first few seconds, gone after a minute
+  // notification craters: dark floor, bright rim, red-hot for the first few seconds
   g_hot=0.;
   for(int i=0;i<6;i++){
     if(int(u_crP[i]+.5)!=k) continue;
