@@ -432,10 +432,11 @@ function letterLayout(el,r){const t=el.textContent,w=el.offsetWidth;if(el.__ml&&
     for(let i=0;i<n.data.length;i++){const ch=n.data[i];if(!ch.trim())continue;const rg=document.createRange();rg.setStart(n,i);rg.setEnd(n,i+1);const b=rg.getClientRects()[0];if(!b)continue;
       g.push({c:up?ch.toUpperCase():ch,x:(b.left+b.width/2-r.left)/sc,y:(b.top+b.height/2-r.top)/sc,f:font});}}
   el.__ml={t,w,g};return g;}
-function drawMaskText(ctx,k,list){for(const {el,op,r} of list){const sc=r.width/(el.offsetWidth||r.width);ctx.globalAlpha=op;ctx.setTransform(k*sc,0,0,k*sc,k*r.left,k*r.top);
+function drawMaskText(ctx,k,list){ctx.lineWidth=1;   // a thin outline: the cutout hugs the letters
+  for(const {el,op,r} of list){const sc=r.width/(el.offsetWidth||r.width);ctx.globalAlpha=op;ctx.setTransform(k*sc,0,0,k*sc,k*r.left,k*r.top);
   for(const c of letterLayout(el,r)){ctx.font=c.f;ctx.fillText(c.c,c.x,c.y);ctx.strokeText(c.c,c.x,c.y);}}}
 const MM=document.createElement('canvas'),mmx=MM.getContext('2d'),mmTex=gl.createTexture();let mmKey='';
-function drawMainMask(){const k=1/3,mw=Math.ceil(W*k),mh=Math.ceil(H*k),inW=wz.k>=0&&ew>=1&&curW()!=='gallery',
+function drawMainMask(){const k=1/2,mw=Math.ceil(W*k),mh=Math.ceil(H*k),inW=wz.k>=0&&ew>=1&&curW()!=='gallery',
     txt=inW?[]:maskText(MAIN_MASK_SEL),key=mw+'x'+mh+':'+txt.map(t=>t.k).join('|');   // a world covers the solar system: nothing to clear
   gl.activeTexture(gl.TEXTURE4);gl.bindTexture(gl.TEXTURE_2D,mmTex);gl.uniform1i(U.u_tm,4);
   if(key!==mmKey){mmKey=key;if(MM.width!==mw||MM.height!==mh){MM.width=mw;MM.height=mh;}
