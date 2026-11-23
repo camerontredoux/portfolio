@@ -1,0 +1,17 @@
+/
+  Link: </src/styles.css>; rel=preload; as=style
+  Link: </src/main.js>; rel=modulepreload
+  Link: </src/shaders.js>; rel=modulepreload
+  Link: </src/content.js>; rel=modulepreload
+
+/src/*
+  Cache-Control: public, max-age=300, stale-while-revalidate=604800
+
+/assets/*
+  Cache-Control: public, max-age=604800, stale-while-revalidate=2592000
+
+/og.png
+  Cache-Control: public, max-age=604800, stale-while-revalidate=2592000
+
+/favicon.svg
+  Cache-Control: public, max-age=604800, stale-while-revalidate=2592000

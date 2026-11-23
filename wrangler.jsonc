@@ -1,14 +1,20 @@
 {
 	"$schema": "./node_modules/wrangler/config-schema.json",
 	"name": "portfolio",
+	"main": "worker/index.js",
 	"compatibility_date": "2026-11-01",
 	"routes": [
 		{ "pattern": "tredoux.dev", "custom_domain": true },
 		{ "pattern": "www.tredoux.dev", "custom_domain": true }
 	],
 	"assets": {
-		"directory": "./public"
+		"directory": "./public",
+		"binding": "ASSETS"
 	},
+	"durable_objects": {
+		"bindings": [{ "name": "SKY", "class_name": "Sky" }]
+	},
+	"migrations": [{ "tag": "v1", "new_sqlite_classes": ["Sky"] }],
 	"observability": {
 		"enabled": true
 	}

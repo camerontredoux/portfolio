@@ -169,7 +169,7 @@ const islLabs=ISL.map((s,i)=>document.getElementById('i'+i));
 const mtip=document.getElementById('mtip');
 // comets: a notification streaks in and hits its planet
 const comet={on:false,t:0,dur:2.3,sx:0,sy:0,k:0,bend:0,next:3,hx:0,hy:0,ang:0,pr:null};
-const COMET_PLANET=0,MERGE_SLOT=30;   // merged PRs land on Work
+const COMET_PLANET=0,MERGE_SLOT=30;   // pushes land on Work
 function launch(k,pr){comet.pr=pr||null;
   const side=Math.random()*4|0,r=Math.random();
   [comet.sx,comet.sy]=[[r*W,-20],[W+20,r*H],[r*W,H+20],[-20,r*H]][side];
@@ -188,8 +188,8 @@ function enterCrater(c){if(!c.ack){c.ack=true;c.t=performance.now()/1000-1.5;}  
   crSite={t:c.t,sx:q.x,sy:q.y,slot:MERGE_SLOT,u,p:c.p};crRep=.3;crYaw=crYawT=.6;crZoom=0;   /* meteor already on its way as the scene fades in */
   closeFacts();wz.k=c.p;wz.mode='crater';wz.target=1;wTouched=false;
   const esc=t=>String(t).replace(/[&<>"]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[ch]);
-  worldEl.innerHTML=`<div class="imp"><div class="k">merged · ${esc(u.name)} · #${u.number} · ${ago(u.merged_at)}</div><div class="n">${esc(u.title)}</div>${u.line?`<div class="x">${esc(u.line)}</div>`:''}`+
-    `<div class="b">${u.url?`<a href="${esc(u.url)}" target="_blank" rel="noopener">view pull request ↗</a>`:''}<button id="rp">↺ replay impact</button></div></div><div class="wh">drag to circle the crater</div>`;
+  worldEl.innerHTML=`<div class="imp"><div class="k">pushed · ${esc(u.name)} · ${esc(u.branch)} · ${ago(u.at)}</div><div class="n">${esc(u.title)}</div>${u.line?`<div class="x">${esc(u.line)}</div>`:''}`+
+    `<div class="b">${u.url?`<a href="${esc(u.url)}" target="_blank" rel="noopener">view on GitHub ↗</a>`:''}<button id="rp">↺ replay impact</button></div></div><div class="wh">drag to circle the crater</div>`;
   worldEl.querySelector('#rp').onclick=e=>{e.stopPropagation();crRep=0;};}
 const craters=[],crU=new Float32Array(24),crP=new Float32Array(6).fill(-9);
 const ACT0=[1,.6,.15,.5,.35],act=[...ACT0];
@@ -445,7 +445,7 @@ function worldDrag(dx,dy,dt){wTouched=true;const t=curW();
     else yawT=Math.max(-.45,Math.min(.45,yawT+dx*.0022));}
   if(t==='strata'){const {max}=SL();depth=Math.max(0,Math.min(max,depth-dy));depthV=depthV*.5+(-dy/dt)*.5;}}
 function worldTap(x,y){const t=curW();
-  if(t==='crater'){const u=crSite.u;if(!u.url)return;   /* tapping the shard opens the pull request (public repos only) */const af=NARROW?1.65:1,yw=crYaw,dist=(7.6-1.8*crZoom)*af,ro=[Math.sin(yw)*dist,(4.6+.8*crZoom)*af,-Math.cos(yw)*dist],
+  if(t==='crater'){const u=crSite.u;if(!u.url)return;   /* tapping the shard opens the push on GitHub */const af=NARROW?1.65:1,yw=crYaw,dist=(7.6-1.8*crZoom)*af,ro=[Math.sin(yw)*dist,(4.6+.8*crZoom)*af,-Math.cos(yw)*dist],
       f=[-ro[0],-.2-ro[1],-ro[2]],fl=Math.hypot(...f),fw=f.map(v=>v/fl);let rt=[fw[2],0,-fw[0]];const rl=Math.hypot(...rt);rt=rt.map(v=>v/rl);
       const up=[fw[1]*rt[2]-fw[2]*rt[1],fw[2]*rt[0]-fw[0]*rt[2],fw[0]*rt[1]-fw[1]*rt[0]],q=project({ro,fw,rt,up},[0,.2,0]);
     if(q&&Math.hypot(x-q.x,y-q.y)<1.4*q.k)window.open(u.url,'_blank','noopener');return;}
@@ -846,7 +846,7 @@ function frame(now){
     ret.style.opacity=1;ret.style.width=ret.style.height=rs+'px';ret.style.transform=`translate(${Math.round(q.x-rs/2)}px,${Math.round(q.y-rs/2)}px)`;
   }
   // comet
-  // comets only fly for real merged PRs, one at a time, a few seconds apart, and only while you're looking at the whole system
+  // comets only fly for real pushes, one at a time, a few seconds apart, and only while you're looking at the whole system
   if(!comet.on){comet.next-=dt;if(comet.next<=0&&F<0&&bz.z===0&&!reduce&&!document.hidden){const pr=nextComet();if(pr)launch(COMET_PLANET,pr);comet.next=pr?5+Math.random()*3:2;}}
   else{
     comet.t+=dt;const u=Math.min(1,comet.t/comet.dur),uu=u*u*(1.6-.6*u);

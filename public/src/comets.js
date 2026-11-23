@@ -1,11 +1,7 @@
-// Real comets: every merged pull request in the repos listed in comets.config.json.
-// A GitHub Action (.github/workflows/comets.yml) refreshes public/data/comets.json; this module reads it
-// and hands the engine one PR at a time, oldest first, each one exactly once per visitor.
-
-const FEED = 'data/comets.json';
-const SEEN_KEY = 'comets:seen';      // ISO time of the newest PR this browser has already watched land
-const FIRST_VISIT = 3;               // a first-time visitor sees the latest few
-const POLL_MS = 5 * 60 * 1000;
+const SEEN_KEY = 'comets:seen';
+const FIRST_VISIT = 3;
+const PING_MS = 30 * 1000;
+const RECONNECT_MS = 5 * 1000;
 
 const queue = [];
 let seen = null;
@@ -14,36 +10,35 @@ function readSeen() {
   try { return localStorage.getItem(SEEN_KEY); } catch { return null; }
 }
 function writeSeen(iso) {
-  try { localStorage.setItem(SEEN_KEY, iso); } catch { /* private mode: comets just replay next visit */ }
+  try { localStorage.setItem(SEEN_KEY, iso); } catch {}
 }
 
-async function refresh() {
-  let prs;
-  try {
-    const res = await fetch(`${FEED}?t=${Date.now()}`, { cache: 'no-store' });
-    if (!res.ok) return;
-    prs = (await res.json()).prs || [];
-  } catch { return; }
-  prs.sort((a, b) => a.merged_at.localeCompare(b.merged_at));          // oldest first
-  const fresh = seen ? prs.filter((p) => p.merged_at > seen) : prs.slice(-FIRST_VISIT);
-  for (const p of fresh) if (!queue.some((q) => q.repo === p.repo && q.number === p.number)) queue.push(p);
+function take(comets) {
+  comets.sort((a, b) => a.at.localeCompare(b.at));
+  const fresh = seen ? comets.filter((c) => c.at > seen) : comets.slice(-FIRST_VISIT);
+  for (const c of fresh) if (!queue.some((q) => q.id === c.id)) queue.push(c);
+}
+
+function connect() {
+  const ws = new WebSocket(`${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/api/comets`);
+  let ping;
+  ws.onopen = () => { ping = setInterval(() => ws.send('ping'), PING_MS); };
+  ws.onmessage = (e) => { if (e.data !== 'pong') take(JSON.parse(e.data).comets); };
+  ws.onclose = () => { clearInterval(ping); setTimeout(connect, RECONNECT_MS); };
 }
 
 export function startCometFeed() {
   seen = readSeen();
-  refresh();
-  setInterval(refresh, POLL_MS);
+  connect();
 }
 
-// the next PR to fly in, or null. Marks it as seen so it won't come again.
 export function nextComet() {
-  const p = queue.shift();
-  if (!p) return null;
-  if (!seen || p.merged_at > seen) { seen = p.merged_at; writeSeen(seen); }
-  return p;
+  const c = queue.shift();
+  if (!c) return null;
+  if (!seen || c.at > seen) { seen = c.at; writeSeen(seen); }
+  return c;
 }
 
-// "3 min ago", "yesterday", "12 Nov"
 export function ago(iso) {
   const s = (Date.now() - Date.parse(iso)) / 1000;
   if (s < 90) return 'just now';

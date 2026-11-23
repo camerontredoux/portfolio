@@ -19,12 +19,12 @@ Images live in `public/assets/`. A project's `imgs` takes up to two image paths;
 
 ## Comets
 
-Every merged pull request in the repos listed in **`comets.config.json`** flies in as a comet and hits Work. Tapping its crater shows the repo, PR number, title and a one-line description. Private repos show all of that but no link.
+Every push to a public repo on the `camerontredoux` GitHub account flies in as a comet and hits Work. Pages that are open when the push lands get the comet live. Tapping its crater shows the repo, branch, commit title, and a link to the commit on GitHub.
 
-- **One-liner:** add a line like `comet: Faster PDF export for invoices` anywhere in the PR description. Without it, the first plain sentence of the description is used.
-- **Refresh:** `.github/workflows/comets.yml` runs every 20 minutes (and on demand from the Actions tab), writes `public/data/comets.json`, and redeploys if anything is new. Its own commit does not trigger a deploy (GitHub skips workflows for pushes made with the workflow token), so it starts `deploy.yml` itself.
-- **Token:** the workflow reads a repository secret named `COMETS_TOKEN`: a fine-grained personal access token with read-only *Pull requests* and *Metadata* access to the listed repos.
-- **Visitors** see each PR once: first-time visitors get the latest three, returning visitors get whatever merged since their last visit.
+- **Webhook:** a GitHub App on the `camerontredoux` account sends push events to `https://tredoux.dev/api/github`. The Worker (`worker/index.js`) checks the signature against the secret `GITHUB_WEBHOOK_SECRET` and drops pushes to private repos.
+- **Live updates:** one Durable Object, `Sky`, keeps the latest 40 comets. Each open page holds a WebSocket to `/api/comets`. The Durable Object hibernates between pushes, so idle connections cost almost nothing.
+- **Visitors** see each push once: first-time visitors get the latest three, returning visitors get whatever was pushed since their last visit.
+- **The second line** is the commit count for a multi-commit push. For a single commit, it is the first line of the commit body.
 
 ## Running locally
 
@@ -39,7 +39,9 @@ Then open http://localhost:8787. `pnpm dev` runs the Worker locally with Wrangle
 
 A push to `main` deploys. The GitHub Actions workflow in `.github/workflows/deploy.yml` runs `wrangler deploy` with the repo secrets `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`.
 
-To deploy by hand, put those two values in `.env` (it is gitignored) and run:
+Set the webhook secret once with `pnpm exec wrangler secret put GITHUB_WEBHOOK_SECRET`. For local dev, put it in `.dev.vars`.
+
+To deploy by hand, put the Cloudflare token and account ID in `.env` (it is gitignored) and run:
 
 ```sh
 set -a && . ./.env && set +a && pnpm run deploy
@@ -48,22 +50,23 @@ set -a && . ./.env && set +a && pnpm run deploy
 ## Layout
 
 ```
-wrangler.jsonc           Worker config: name, static assets directory
+wrangler.jsonc           Worker config: domains, static assets, Durable Object
+worker/index.js          webhook endpoint, comet WebSocket, the Sky Durable Object
 public/index.html        page shell, HUD markup, crawler-readable summary
 public/src/content.js    everything editable
 public/src/main.js       the engine: camera, interaction, scenes, render loop
 public/src/shaders.js    GLSL for the points, the planet worlds and the pixel blit
 public/src/fallback.js   plain-text version for browsers without WebGL2
 public/src/styles.css    HUD and text styles
-public/src/comets.js     reads the comet feed
-public/data/comets.json  comet feed, written by the comets workflow
+public/src/comets.js     comet feed client: WebSocket, queue, "seen" tracking
+public/_headers          cache and preload headers
 public/assets/           photos and logos
 public/og.png            link-preview image
-scripts/fetch-comets.mjs builds the comet feed from comets.config.json
 ```
 
 ## Notes
 
 - Quality adapts: if frames run slow for a few seconds, the page renders at a lower pixel ratio.
 - Browsers without WebGL2 get the plain version built from the same content.
+- Caching: scripts are cached for 5 minutes and then refreshed in the background, so a returning visitor may see the previous deploy once. Images are cached for a week. `index.html` is always checked.
 - Deep links: `/#slug` opens a project (for example `/#bytebot`).
