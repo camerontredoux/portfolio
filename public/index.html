@@ -19,7 +19,8 @@
 <link rel="modulepreload" href="src/fallback.js">
 <link rel="stylesheet" href="src/styles.css">
 </head>
-<body>
+<body class="loading">
+<div id="loading">Loading...</div>
 <canvas id="c"></canvas><div id="bloom"></div>
 
 <nav id="nav" class="hud">
@@ -66,7 +67,7 @@
   <p>University of Colorado Boulder, B.S. in Computer Science, magna cum laude, 2024.</p>
   <p><a href="https://github.com/camerontredoux">GitHub</a></p>
 </section>
-<noscript><p style="padding:40px;text-transform:none">This site draws a solar system with JavaScript. Turn JavaScript on to see it.</p></noscript>
+<noscript><style>#loading{display:none}body.loading>*{visibility:visible!important}</style><p style="padding:40px;text-transform:none">This site draws a solar system with JavaScript. Turn JavaScript on to see it.</p></noscript>
 <script type="module" src="src/main.js"></script>
 </body>
 </html>

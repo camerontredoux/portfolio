@@ -1053,3 +1053,4 @@ ISL.forEach((it,i)=>it.imgs.slice(0,2).forEach((src,k)=>{const im=new Image();im
 ISL.forEach((it,i)=>{const mo=MOONS[i];if(it.status==='archive'){mo.st='gone';swallowed.push(i);}else if(it.status==='wip'){mo.st='belt';mo.ba0=i*1.7;}});
 PL.forEach((_,k)=>reslot(k));updCounts();setTimeout(openBySlug,700);startCometFeed();
 requestAnimationFrame(frame);
+requestAnimationFrame(()=>requestAnimationFrame(()=>document.body.classList.remove('loading')));
