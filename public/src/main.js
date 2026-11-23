@@ -458,8 +458,8 @@ function worldTap(x,y){const t=curW();
     if(hit>=0){camV=0;openMem(hit);}return;}
   if(t==='strata'){const {y0}=SL();for(const f of FOS()){const fy=y0+f.y-depth;if(x>f.x&&x<f.x+f.s&&y>fy&&y<fy+f.s){if(f.u)window.open(f.u,'_blank','noopener');return;}}}}
 // ---- trackpad / wheel spinning: one place for direction and feel, shared by every view that spins ----
-const SPIN_DIR=-1;                                     // flip this to reverse trackpad spinning everywhere
-function wheelAmount(e){const k=e.deltaMode===1?16:1,dx=e.deltaX*k,dy=e.deltaY*k;return SPIN_DIR*(Math.abs(dx)>Math.abs(dy)?dx:dy);}
+const SPIN_X=-1,SPIN_Y=1;                              // flip one to reverse sideways or up/down spinning everywhere
+function wheelAmount(e){const k=e.deltaMode===1?16:1,dx=e.deltaX*k,dy=e.deltaY*k;return Math.abs(dx)>Math.abs(dy)?SPIN_X*dx:SPIN_Y*dy;}
 // what can spin right now, and how a nudge of d (in radians) moves it; null if nothing should
 function spinTarget(){
   if(drag.on||wz.k>=0||mz.target===1)return null;
