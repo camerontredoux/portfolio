@@ -2,8 +2,9 @@ import { VS, FS, WVS, WFS, BFS } from './shaders.js';
 import { ISL, PLN, UPD, APPN, SUP, FACTS, SCAPS, STRATA, MEM } from './content.js';
 import { renderFallback } from './fallback.js';
 
-// quality: the highest pixel ratio we render at. Starts at the screen's (max 2) and steps down if frames run slow.
-let qCap=2,qT=0,qN=0,qSince=0;
+// quality: the planet worlds (Starlee's ocean, the Resume dig, impact sites) are the only heavy scenes.
+// If they run slow, their pixels get a little coarser; the solar system itself always draws at full detail.
+let wQ=1,qT=0,qN=0,qSince=0;
 
 const cv = document.getElementById('c');
 const gl = cv.getContext('webgl2', {antialias: false, premultipliedAlpha: false});
@@ -27,7 +28,7 @@ const wpr=mk(WVS,WFS),bpr=mk(WVS,BFS),WU={},BU={};
 for(const n of['w_res','w_scr','w_cam','w_cell','w_t','w_mode','w_fade','w_e','w_depth','w_y0','w_dpr','w_rev','w_ctr','w_lbx','w_cr','w_mono','w_monoS','w_monoV','w_monoB','w_mn','w_mf','w_lay','w_fos','w_fosS','w_atl','w_logo','w_tm'])WU[n]=gl.getUniformLocation(wpr,n);
 for(const n of['b_tex','b_cell'])BU[n]=gl.getUniformLocation(bpr,n);
 const wvao=gl.createVertexArray(),wtex=gl.createTexture(),wfb=gl.createFramebuffer();let wCols=1,wRows=1,wCell=4;
-function makeFBO(){wCell=SBD;wCols=Math.ceil(cv.width/wCell);wRows=Math.ceil(cv.height/wCell);
+function makeFBO(){wCell=Math.round(SBD*wQ);wCols=Math.ceil(cv.width/wCell);wRows=Math.ceil(cv.height/wCell);
   gl.activeTexture(gl.TEXTURE1);gl.bindTexture(gl.TEXTURE_2D,wtex);
   gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA8,wCols,wRows,0,gl.RGBA,gl.UNSIGNED_BYTE,null);
   gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.NEAREST);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.NEAREST);
@@ -141,14 +142,14 @@ function resize(){
   if(small){setTimeout(()=>resize(),150);if(W)return;}
   {const k=innerWidth+'x'+innerHeight+'@'+(window.devicePixelRatio||1);if(k===_rsKey&&W)return;if(!small)_rsKey=k;}
   setTimeout(()=>{try{if(wz.k>=0&&curW()==='strata')measureGlyphs();}catch(e){}},0);   /* label sizes change with the window */
-  DPR=Math.min(window.devicePixelRatio||1,2,qCap);W=innerWidth;H=innerHeight;
+  DPR=Math.min(window.devicePixelRatio||1,2);W=innerWidth;H=innerHeight;
   cv.width=W*DPR;cv.height=H*DPR;gl.viewport(0,0,cv.width,cv.height);
   NARROW=W<700;
   S=NARROW?Math.min(W/1420,(H-160)/640):Math.min(W/1640,(H-140)/640);
   CX=Math.round(W/2*DPR)/DPR;CY=Math.round(H/2*DPR)/DPR;SP=Math.max(2.4,4*S);
   // planets get a much finer grid so even the smallest stays round; device pixels set the floor
   // spacing is a whole number of device pixels, so the pixel grid stays crisp with no moiré
-  SPD=Math.max(3,Math.round(2.6*S*DPR));SBD=Math.max(4,Math.round(2.8*S*DPR));SPP=SPD/DPR;SPB=SBD/DPR;
+  SPD=Math.max(3,Math.round(Math.min(2.6*S,1.3)*DPR));SBD=Math.max(4,Math.round(Math.min(2.8*S,1.4)*DPR));SPP=SPD/DPR;SPB=SBD/DPR;   /* dot size stays the same on big windows: larger screens get more dots, not bigger ones */
   RB=NARROW?Math.min(W*.36,H*.3):Math.min(W*.25,H*.34);RT=Math.min(W,H)*(NARROW?.095:.1);RMV=NARROW?Math.min(W*.33,H*.2):Math.min(RB*.95,H*.33);
   GT_T=NARROW?W*.68:Math.min(H*.5,W*.3);GT_G=NARROW?W*.1:GT_T*.16;
   build();
@@ -455,7 +456,12 @@ function worldTap(x,y){const t=curW();
       if(Math.abs(x-q.x)<b[0]*q.k+10&&Math.abs(y-q.y)<b[1]*q.k+10&&q.z<hz){hz=q.z;hit=i;}});
     if(hit>=0){camV=0;openMem(hit);}return;}
   if(t==='strata'){const {y0}=SL();for(const f of FOS()){const fy=y0+f.y-depth;if(x>f.x&&x<f.x+f.s&&y>fy&&y<fy+f.s){if(f.u)window.open(f.u,'_blank','noopener');return;}}}}
-addEventListener('wheel',e=>{if(wz.k<0||wz.target!==1)return;monoFly=null;e.preventDefault();wTouched=true;const t=curW(),d=e.deltaY+e.deltaX;
+addEventListener('wheel',e=>{
+  // solar system view: the trackpad spins it. Fingers moving left (or scrolling down) turn it clockwise; right (or up) the other way.
+  if(wz.k<0&&zoom.focus<0&&zoom.target===0&&bz.target===0&&mz.target===0&&!drag.on){e.preventDefault();
+    const k=e.deltaMode===1?16:1,dx=e.deltaX*k,dy=e.deltaY*k,d=Math.abs(dx)>Math.abs(dy)?dx:dy;
+    sysA+=d*.0016;sysV=Math.max(-6,Math.min(6,sysV*.85+d*.012));return;}
+  if(wz.k<0||wz.target!==1)return;monoFly=null;e.preventDefault();wTouched=true;const t=curW(),d=e.deltaY+e.deltaX;
   if(t==='crater'){crZoom=Math.max(-.6,Math.min(1,crZoom-e.deltaY*.002));crYawT+=e.deltaX*.004;}
   if(t==='surface')camV=Math.max(-30,Math.min(30,camV+d*.025));
   if(t==='strata'){depthV+=d*2.6;}
@@ -600,8 +606,8 @@ const sstep=(a,b,x)=>{const t=Math.min(Math.max((x-a)/(b-a),0),1);return t*t*(3-
 
 function frame(now){
   // adaptive quality: if the last few seconds averaged under ~40fps, render at a lower pixel ratio (never below 1)
-  {const raw=now-last;if(!document.hidden&&raw<250&&now-qSince>3000){qT+=raw;qN++;}
-   if(qN>=150){const avg=qT/qN;qT=qN=0;if(avg>26&&qCap>1&&Math.min(window.devicePixelRatio||1,2)>1){qCap=Math.max(1,Math.min(qCap,DPR)-.5);qSince=now;_rsKey='';resize();}}}
+  {const raw=now-last,inW=wz.k>=0&&ew>=1&&curW()!=='gallery';if(inW&&!document.hidden&&raw<250&&now-qSince>2500){qT+=raw;qN++;}else if(!inW){qT=qN=0;}
+   if(qN>=120){const avg=qT/qN;qT=qN=0;if(avg>26&&wQ<2){wQ=Math.min(2,wQ+.5);qSince=now;makeFBO();}}}
   const dt=Math.min((now-last)/1000,.05);last=now;
   simT+=dt*(reduce?0:1);
   // springs instead of easing: the scatter overshoots and wobbles back when you move off

@@ -129,3 +129,5 @@ body.fallback{overflow:auto}body.fallback>*:not(#fallback){display:none!importan
 #fallback ul{list-style:none;padding:0;margin:0}#fallback li{margin:0 0 22px}#fallback li b{color:#fff;font-weight:500}#fallback li span{color:var(--dim)}
 #fallback p{margin:4px 0}#fallback a{color:var(--ink)}#fallback .mem{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:16px}
 #fallback img{width:100%;display:block;filter:grayscale(.2)}#fallback figcaption{font-size:12px;margin-top:6px}
+
+html,body{overscroll-behavior:none}   /* sideways swipes spin the system instead of going back a page */
