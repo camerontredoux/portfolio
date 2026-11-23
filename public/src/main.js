@@ -877,7 +877,7 @@ function frame(now){
     const t=curW(),P=pos[wz.k];
     if(wz.target===1){const t2='← Back to '+APPN[wz.k];if(back.textContent!==t2)back.textContent=t2;}
     const kids=[...worldEl.children],wh=worldEl.querySelector('.wh');
-    if(wh)wh.style.opacity=wTouched?0:.8*sstep(.85,1,ew);
+    if(wh)wh.style.opacity=wTouched?0:sstep(.85,1,ew);
     if(t==='surface'){   // the planet swells toward you as you fall into it
       const g=1+2.4*ew;P.r*=g;plU[wz.k*4+2]=P.r;
       if(!drag.on||drag.axis!=='y'){camZ+=camV*dt;camV*=Math.exp(-dt*1.8);

@@ -106,9 +106,9 @@ button:focus-visible{outline:1px solid var(--dim);outline-offset:3px}
 #world .imp .n,#world .imp .x,#world .imp a,#world .imp button{color:#fff;text-shadow:0 0 1px #000,0 0 2px #000,0 0 8px rgba(255,255,255,.28)}
 #world .imp a{transition:text-shadow .2s,text-decoration-color .2s}#world .imp a:hover{text-decoration-color:#fff;text-shadow:0 0 1px #000,0 0 2px #000,0 0 6px rgba(255,255,255,.7),0 0 14px rgba(255,255,255,.45)}
 @media(max-width:699px){#world .imp .n{font-size:18px}#world .imp{bottom:80px}}
-#world .wh{left:50%;top:auto;bottom:54px;transform:translateX(-50%);color:#fff;text-shadow:0 0 1px #000,0 0 2px #000,0 0 8px rgba(255,255,255,.28);font-size:10.5px;white-space:nowrap;transition:opacity .6s}
+#world .wh{left:50%;top:auto;bottom:54px;transform:translateX(-50%);color:#fff;text-shadow:0 0 1px #000,0 0 2px #141414,0 0 4px #141414,0 0 8px rgba(20,20,20,.9),0 0 14px rgba(255,255,255,.22);font-size:10.5px;white-space:nowrap;transition:opacity .6s}
 #lhint{position:fixed;left:0;top:0;z-index:2;color:var(--dim);font-size:10px;white-space:nowrap;opacity:0;pointer-events:none;transition:opacity .4s}
-body.inworld #where,body.inworld #where *,body.inworld #back{color:#fff!important;opacity:1;text-shadow:0 0 6px rgba(255,255,255,.45),0 0 2px rgba(255,255,255,.35)}
+body.inworld #where,body.inworld #where *,body.inworld #back{color:#fff!important;opacity:1;text-shadow:0 0 1px #000,0 0 2px #141414,0 0 4px #141414,0 0 8px rgba(20,20,20,.9),0 0 14px rgba(255,255,255,.22)}
 body.inworld #back:not(.show){opacity:0}
 #world .sl .y,#world .sl .n,#world .sl .x,#world .fc,#world .fc b{color:#fff!important;text-shadow:0 0 1px #000,0 0 2px #000,0 0 8px rgba(255,255,255,.28)!important}
 #memv{position:fixed;inset:0;z-index:6;display:none;flex-direction:column;align-items:center;justify-content:center;gap:6px;background:rgba(20,20,20,0);transition:background .35s;cursor:pointer;text-align:center;line-height:1.6}
