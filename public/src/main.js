@@ -183,7 +183,7 @@ let crPend=null;
 function enterCrater(c){if(!c.ack){c.ack=true;c.t=performance.now()/1000-1.5;syncCraters();}   // seen: now it can cool
   const q=craterScreen(c)||{x:CX,y:CY};const u=c.u;
   crSite={t:c.t,sx:q.x,sy:q.y,slot:MERGE_SLOT,u,p:c.p};crRep=.3;crYaw=crYawT=.6;crZoom=0;   /* meteor already on its way as the scene fades in */
-  closeFacts();wz.k=c.p;wz.mode='crater';wz.target=1;wTouched=false;
+  closeFacts();wz.k=c.p;wz.mode='crater';wz.target=1;wMoved=0;
   const esc=t=>String(t).replace(/[&<>"]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[ch]);
   worldEl.innerHTML=`<div class="imp"><div class="k">pushed · ${esc(u.name)} · ${esc(u.branch)} · ${ago(u.at)}</div><div class="n">${esc(u.title)}</div>${u.line?`<div class="x">${esc(u.line)}</div>`:''}`+
     `<div class="b">${u.url?`<a href="${esc(u.url)}" target="_blank" rel="noopener">view on GitHub ↗</a>`:''}<button id="rp">↺ replay impact</button></div></div>`;
@@ -400,13 +400,13 @@ function camBasis(nowS){const e=ew,alt=5+(32-5)*(1-e),pitch=-.13+(-1.3+.13)*(1-e
 function project(B,P){const d=[P[0]-B.ro[0],P[1]-B.ro[1],P[2]-B.ro[2]],dot=(a,b)=>a[0]*b[0]+a[1]*b[1]+a[2]*b[2],z=dot(d,B.fw);if(z<=.1)return null;
   const ux=dot(d,B.rt)/(z*1.15),uy=dot(d,B.up)/(z*1.15);
   return {x:(ux*wRows+wCols/2)*wCell/DPR,y:H-(uy*wRows+wRows/2)*wCell/DPR,z,k:wRows*wCell/DPR/(z*1.15)};}
-const wz={k:-1,z:0,target:0};let ew=0,camZ=0,camV=0,yaw=0,yawT=0,depth=0,depthV=0,galX=0,galT=0,galVel=0,wAcc=0,wTouched=false;
+const wz={k:-1,z:0,target:0};let ew=0,camZ=0,camV=0,yaw=0,yawT=0,depth=0,depthV=0,galX=0,galT=0,galVel=0,wAcc=0,wMoved=0;const HINT_GONE=500;   // pixels of scrolling or dragging before a world's hint fades out
 const worldEl=document.getElementById('world'),lhint=document.getElementById('lhint');
 const SL=()=>{const y0=NARROW?H*.24:H*.3,LH=Math.max(H*.85,560);return {y0,LH,max:4*LH-H*.2};};
 let labH=150,labW=270,stEls={sl:[],fc:[]},tmKey='';const revC={x:0,y:0};const FOS=()=>{const {LH}=SL(),fs=NARROW?W*.5:Math.min(W*.2,LH*.3,260);
   const lx=NARROW?20:Math.max(28,W*.08);
   return STRATA.map((l,j)=>l.lg==null?null:{lg:l.lg,u:l.u,t:l.t,x:NARROW?(W-fs)/2:lx,y:LH*j+(NARROW?LH*.44:(j?44:30)+labH+40),s:fs}).filter(Boolean);};
-function enterWorld(k){closeFacts();wz.k=k;wz.target=1;MONO=MEM.map((_,i)=>i);camZ=stationZ(0)-9;camV=0;yaw=yawT=0;depth=0;depthV=0;galX=galT=0;wTouched=false;
+function enterWorld(k){closeFacts();wz.k=k;wz.target=1;MONO=MEM.map((_,i)=>i);camZ=stationZ(0)-9;camV=0;yaw=yawT=0;depth=0;depthV=0;galX=galT=0;wMoved=0;
   const t=WT[k];let h='';
   if(t==='gallery')h=GT.map((g,ti)=>`<div class="gl" data-t="${ti}"><span class="n">${ISL[g.i].t}</span> · ${ISL[g.i].d}<div class="s"></div></div>`).join('');
   if(t==='surface')h=`<div class="cap mono"><div class="n"></div><div class="s"></div><div class="o"></div></div>`;
@@ -438,7 +438,7 @@ function openFromWorld(i){const mo=MOONS[i];exitWorld();
     else if(mo.st!=='moon'){zoomOut();}
     else if(ISL[i].p===zoom.focus){mz.i=i;mz.target=1;}
     else{zoomTo(ISL[i].p);mz.pending=i;}},1250);}
-function worldDrag(dx,dy,dt){wTouched=true;const t=curW();
+function worldDrag(dx,dy,dt){wMoved+=Math.hypot(dx,dy);const t=curW();
   if(t==='crater'){crYawT+=dx*.006;crZoom=Math.max(-.6,Math.min(1,crZoom-dy*.004));return;}
   if(t==='gallery'){const d=-dx/(GT_T+GT_G);galX=Math.max(-.4,Math.min(GT.length-.6,galX+d));galVel=galVel*.5+d/dt*.5;galT=galX;}
   if(t==='surface'){if(!drag.axis)drag.axis=Math.abs(dy)>=Math.abs(dx)*.8?'y':'x';
@@ -468,7 +468,7 @@ function spinTarget(){
   return null;}
 addEventListener('wheel',e=>{
   {const T=spinTarget();if(T){e.preventDefault();T.nudge(wheelAmount(e)*T.scale);return;}}
-  if(wz.k<0||wz.target!==1)return;monoFly=null;e.preventDefault();wTouched=true;const t=curW(),d=e.deltaY+e.deltaX;
+  if(wz.k<0||wz.target!==1)return;monoFly=null;e.preventDefault();wMoved+=(Math.abs(e.deltaX)+Math.abs(e.deltaY))*(e.deltaMode===1?16:1);const t=curW(),d=e.deltaY+e.deltaX;
   if(t==='crater'){crZoom=Math.max(-.6,Math.min(1,crZoom-e.deltaY*.002));crYawT-=SPIN_X*e.deltaX*.004;}   // the camera circles, so the ground turns the way the planets do
   if(t==='surface')camV=Math.max(-30,Math.min(30,camV+d*.025));
   if(t==='strata'){depthV+=d*2.6;}
@@ -589,7 +589,7 @@ document.getElementById('rest').addEventListener('click',()=>{const i=mz.i;if(i<
   setTimeout(()=>{mz.target=0;},380);                                    // 1. pulse, then pull back to the black hole
   setTimeout(()=>{restoreFromHole(i);bz.target=0;},380+1050);            // 2. it breaks free and flies home as the camera pulls out
 });
-addEventListener('keydown',e=>{if(wz.k>=0&&wz.target===1){const t=curW();wTouched=true;
+addEventListener('keydown',e=>{if(wz.k>=0&&wz.target===1){const t=curW();wMoved+=120;
     if(e.key==='Escape')exitWorld();
     if(t==='gallery'&&(e.key==='ArrowRight'||e.key==='ArrowLeft'))galT=Math.max(0,Math.min(GT.length-1,Math.round(galT)+(e.key==='ArrowRight'?1:-1)));
     if(t==='gallery'&&e.key==='Enter'){const ti=Math.round(galX);if(GT[ti])openFromWorld(GT[ti].i);}
@@ -877,7 +877,7 @@ function frame(now){
     const t=curW(),P=pos[wz.k];
     if(wz.target===1){const t2='← Back to '+APPN[wz.k];if(back.textContent!==t2)back.textContent=t2;}
     const kids=[...worldEl.children],wh=worldEl.querySelector('.wh');
-    if(wh)wh.style.opacity=wTouched?0:sstep(.85,1,ew);
+    if(wh)wh.style.opacity=sstep(.85,1,ew)*(1-sstep(HINT_GONE*.5,HINT_GONE,wMoved));
     if(t==='surface'){   // the planet swells toward you as you fall into it
       const g=1+2.4*ew;P.r*=g;plU[wz.k*4+2]=P.r;
       if(!drag.on||drag.axis!=='y'){camZ+=camV*dt;camV*=Math.exp(-dt*1.8);
