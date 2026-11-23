@@ -186,7 +186,7 @@ function enterCrater(c){if(!c.ack){c.ack=true;c.t=performance.now()/1000-1.5;syn
   closeFacts();wz.k=c.p;wz.mode='crater';wz.target=1;wTouched=false;
   const esc=t=>String(t).replace(/[&<>"]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[ch]);
   worldEl.innerHTML=`<div class="imp"><div class="k">pushed · ${esc(u.name)} · ${esc(u.branch)} · ${ago(u.at)}</div><div class="n">${esc(u.title)}</div>${u.line?`<div class="x">${esc(u.line)}</div>`:''}`+
-    `<div class="b">${u.url?`<a href="${esc(u.url)}" target="_blank" rel="noopener">view on GitHub ↗</a>`:''}<button id="rp">↺ replay impact</button></div></div><div class="wh">drag to circle the crater</div>`;
+    `<div class="b">${u.url?`<a href="${esc(u.url)}" target="_blank" rel="noopener">view on GitHub ↗</a>`:''}<button id="rp">↺ replay impact</button></div></div>`;
   worldEl.querySelector('#rp').onclick=e=>{e.stopPropagation();crRep=0;};}
 const MAX_CRATERS=5,COOL_AGE=10,craters=[],crU=new Float32Array(24),crP=new Float32Array(6).fill(-9);
 const ACT0=[1,.6,.15,.5,.35],act=[...ACT0];
@@ -915,9 +915,8 @@ function frame(now){
   }
   if(crPend&&zoom.focus===crPend.p&&zoom.z>=1&&zoom.target===1){const c=crPend;crPend=null;enterCrater(c);}
   if(wz.k>=0&&curW()==='crater'){crRep+=dt*1.5;if(!drag.on)crYawT+=dt*.05;crYaw+=(crYawT-crYaw)*Math.min(1,dt*4);
-    const el=worldEl.querySelector('.imp'),wh=worldEl.querySelector('.wh');const blast=sstep(CR_MT+.1,CR_MT+.9,crRep);   // text arrives with the explosion
+    const el=worldEl.querySelector('.imp');const blast=sstep(CR_MT+.1,CR_MT+.9,crRep);   // text arrives with the explosion
     if(el){const op=sstep(.85,1,ew)*blast;el.style.opacity=op.toFixed(3);el.classList.toggle('live',op>.97&&crRep>CR_MT+1.8);}   // links wake once the impact's dust settles
-    if(wh)wh.style.opacity=wTouched?0:.8*sstep(.85,1,ew)*blast;
     const tw=(wz.target===1)?'← Back to '+APPN[wz.k]:back.textContent;if(back.textContent!==tw)back.textContent=tw;}
   // hint under the landed planet's name, for planets with a world inside
   {const show=F>=0&&WT[F]&&zoom.z>=1&&zoom.target===1&&wz.k<0&&mz.z===0&&factsK<0;
