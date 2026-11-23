@@ -293,7 +293,7 @@ let cardI=-1;
 function flash(el){el.classList.remove('flash');void el.offsetWidth;el.classList.add('flash');}
 function clickMoon(i){mpulse[i]=performance.now()/1000;ring2.i=i;ring2.t0=mpulse[i];openCard(i);flash(islLabs[i]);flash(mtip);}
 // ---- fact sheets ----
-const factsEl=document.getElementById('facts');let factsK=-1,factsT0=0,factsRows=[],factsAuto=false;
+const factsEl=document.getElementById('facts');let factsK=-1,factsT0=0,factsRows=[];
 const ORD=['inner','2nd','3rd','4th','outer'];
 function openFacts(k){
   factsK=k;factsT0=performance.now();const f=FACTS[k],pl=PL[k],n=MOONS.filter(m=>m.p===k&&m.st==='moon').length;
@@ -574,9 +574,8 @@ function tap(x,y){
   if(mi>=0){clickMoon(mi);return;}                    // orbit view: pulse, ring, and its window card
   if(cardI>=0){closeCard();return;}                   // tapping away closes the card first
   if(zoom.focus>=0&&zoom.target===1){
-    if(Math.hypot(x-CX,y-CY)>RB*1.08){if(factsK>=0)closeFacts();else zoomOut();}
+    if(Math.hypot(x-CX,y-CY)>RB*1.08)zoomOut();
     else if(WT[zoom.focus]){if(zoom.z>=1)enterWorld(zoom.focus);else wPend=zoom.focus;}   // tapped while still zooming in: open as soon as it lands
-    else factsK===zoom.focus?closeFacts():openFacts(zoom.focus);
     return;
   }
   if(zoom.focus<0){const k=pick(x,y);if(k>=0)zoomTo(k);}
@@ -598,7 +597,7 @@ addEventListener('keydown',e=>{if(wz.k>=0&&wz.target===1){const t=curW();wTouche
     if(t==='strata'&&(e.key==='ArrowDown'||e.key==='ArrowUp'))depthV+=(e.key==='ArrowDown'?1:-1)*900;
     if(t==='surface'&&(e.key==='ArrowUp'||e.key==='ArrowDown'))camV+=(e.key==='ArrowUp'?1:-1)*3;
     return;}if(mz.target===1&&(e.key==='ArrowRight'||e.key==='ArrowLeft')){galStep(e.key==='ArrowRight'?1:-1);return;}if(e.key==='Escape'&&mz.target===1&&bz.target===1){moonBack();return;}if(e.key==='Escape'&&bz.target===1){bz.target=0;return;}if(cardI>=0&&e.key==='Enter'){cOpen.click();return;}if(cardI>=0&&e.key==='ArrowRight'){cOpen.click();return;}if(e.key==='n'&&!comet.on&&zoom.focus<0)launch(waiting?(Math.random()*2|0):2);const map={'1':0,'2':1,'3':3,'4':2,'5':4};if(e.key in map)zoomTo(map[e.key]);
-  if(e.key==='Escape'&&cardI>=0&&mz.target!==1)closeCard();else if(e.key==='Escape'&&factsK>=0){closeFacts();return;}if(e.key==='0'||e.key==='Escape'){if(mz.target===1)moonBack();else zoomOut();}
+  if(e.key==='Escape'&&cardI>=0&&mz.target!==1)closeCard();if(e.key==='0'||e.key==='Escape'){if(mz.target===1)moonBack();else zoomOut();}
 });
 
 /* ---------- clock ---------- */
@@ -791,8 +790,7 @@ function frame(now){
   });
     if(wPend>=0){if(zoom.focus!==wPend||zoom.target!==1)wPend=-1;else if(zoom.z>=1){const k=wPend;wPend=-1;enterWorld(k);}}
   {const F2=zoom.focus,on=F2>=0&&zoom.target===1&&zoom.z>=1&&mz.z===0&&mz.target===0&&wz.k<0&&bz.z===0;   // every planet's field notes stream in on their own once you land
-   if(!on){if(F2<0||zoom.target!==1||wz.k>=0||factsAuto!==F2)factsAuto=false;}
-   else if(factsAuto!==F2){factsAuto=F2;if(factsK!==F2)openFacts(F2);}}
+   if(on&&factsK!==F2)openFacts(F2);}   // field notes are simply part of a landed planet: no toggle
   // fact sheet: bottom left on desktop, under the planet on phones
   if(factsK>=0){
     factsTick();
