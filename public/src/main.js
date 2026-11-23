@@ -33,7 +33,7 @@ function makeFBO(){wCell=Math.round(SBD);wCols=Math.ceil(cv.width/wCell);wRows=M
   gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);
   gl.bindFramebuffer(gl.FRAMEBUFFER,wfb);gl.framebufferTexture2D(gl.FRAMEBUFFER,gl.COLOR_ATTACHMENT0,gl.TEXTURE_2D,wtex,0);
   gl.bindFramebuffer(gl.FRAMEBUFFER,null);gl.activeTexture(gl.TEXTURE0);}
-const U={};for(const n of['u_gal','u_gz','u_wv','u_bsp','u_gslot','u_res','u_c','u_dpr','u_sea','u_spin','u_pdot','u_bdot','u_rb','u_spp','u_t','u_s','u_rot','u_dot','u_ring','u_e','u_bigA','u_foc','u_wait','u_cam','u_orb','u_pl','u_big','u_isl','u_islP','u_L','u_sun','u_moon','u_moonP','u_hl','u_mv','u_mv2','u_mring','u_tex','u_img','u_rmv','u_fl','u_bh','u_bhs','u_bz','u_rt','u_mrb','u_moonS','u_cr','u_crP','u_act','u_comet','u_comet2','u_m','u_ck','u_bhc','u_feed','u_near'])U[n]=gl.getUniformLocation(pr,n);
+const U={};for(const n of['u_gal','u_gz','u_wv','u_bsp','u_gslot','u_res','u_c','u_dpr','u_sea','u_spin','u_pdot','u_bdot','u_rb','u_spp','u_t','u_s','u_rot','u_dot','u_ring','u_e','u_bigA','u_foc','u_wait','u_cam','u_orb','u_pl','u_big','u_isl','u_islP','u_L','u_sun','u_moon','u_moonP','u_hl','u_mv','u_mv2','u_mring','u_tex','u_img','u_rmv','u_fl','u_bh','u_bhs','u_bz','u_rt','u_mrb','u_moonS','u_cr','u_crP','u_act','u_comet','u_comet2','u_m','u_ck','u_bhc','u_feed','u_near','u_tm'])U[n]=gl.getUniformLocation(pr,n);
 
 /* ---------- scene, in design units (mockup is ~2000 × 1125) ---------- */
 const ORB=[[222,90],[318,128],[428,172],[540,217],[660,265]];
@@ -421,22 +421,36 @@ function measureGlyphs(){for(const el of worldEl.querySelectorAll('.sl,.fc')){co
   el.__g=g;el.__w=el.offsetWidth;el.__h=el.offsetHeight;}
   stEls={sl:[...worldEl.querySelectorAll('.sl')],fc:[...worldEl.querySelectorAll('.fc')]};labW=stEls.sl[0]?stEls.sl[0].__w:270;tmKey='';}
 const TM=document.createElement('canvas'),tmx=TM.getContext('2d'),tmTex=gl.createTexture();
-// every other piece of text over a world: wherever it is on screen, however it's transformed
-const MASK_SEL='#world>div:not(.sl):not(.fc),#where,#back,#rest';
-function maskText(){return [...document.querySelectorAll(MASK_SEL)].map(el=>{const op=+getComputedStyle(el).opacity,r=el.getBoundingClientRect();
+// text over dots: each letter is drawn into a mask, and the shaders dim the dots behind it so the text reads
+const MASK_SEL='#world>div:not(.sl):not(.fc),#where,#back,#rest';                                   // over a planet world
+const MAIN_MASK_SEL=MASK_SEL+',#nav,#facts,#mtip,#hint,#lhint,#mtitle,.lab';                        // over the solar system
+function maskText(sel){return [...document.querySelectorAll(sel)].map(el=>{const op=+getComputedStyle(el).opacity,r=el.getBoundingClientRect();
   return op<.05||!r.width?null:{el,op,r,k:Math.round(r.left)+','+Math.round(r.top)+','+r.width.toFixed(1)+','+op.toFixed(2)+','+el.textContent};}).filter(Boolean);}
-function drawMaskText(list){for(const {el,op,r} of list){const sc=r.width/(el.offsetWidth||r.width);tmx.globalAlpha=op;
-  const tw=document.createTreeWalker(el,NodeFilter.SHOW_TEXT);let n;while(n=tw.nextNode()){const cs=getComputedStyle(n.parentElement);if(+cs.opacity<.05)continue;
-    const up=cs.textTransform==='uppercase';tmx.font=`${cs.fontWeight} ${parseFloat(cs.fontSize)*sc}px ${cs.fontFamily}`;
+function letterLayout(el,r){const t=el.textContent,w=el.offsetWidth;if(el.__ml&&el.__ml.t===t&&el.__ml.w===w)return el.__ml.g;
+  const sc=r.width/(w||r.width),g=[],tw=document.createTreeWalker(el,NodeFilter.SHOW_TEXT);let n;
+  while(n=tw.nextNode()){const cs=getComputedStyle(n.parentElement);if(+cs.opacity<.05)continue;const up=cs.textTransform==='uppercase',font=`${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`;
     for(let i=0;i<n.data.length;i++){const ch=n.data[i];if(!ch.trim())continue;const rg=document.createRange();rg.setStart(n,i);rg.setEnd(n,i+1);const b=rg.getClientRects()[0];if(!b)continue;
-      const c=up?ch.toUpperCase():ch,x=b.left+b.width/2,y=b.top+b.height/2;tmx.fillText(c,x,y);tmx.strokeText(c,x,y);}}}}
-function drawGlyphMask(){const els=[...stEls.sl,...stEls.fc].filter(e=>e.isConnected),txt=maskText(),key=wCols+'x'+wRows+':'+els.map(e=>e.style.opacity>0?e.__x+','+e.__y:'-').join('|')+'#'+txt.map(t=>t.k).join('|');
+      g.push({c:up?ch.toUpperCase():ch,x:(b.left+b.width/2-r.left)/sc,y:(b.top+b.height/2-r.top)/sc,f:font});}}
+  el.__ml={t,w,g};return g;}
+function drawMaskText(ctx,k,list){for(const {el,op,r} of list){const sc=r.width/(el.offsetWidth||r.width);ctx.globalAlpha=op;ctx.setTransform(k*sc,0,0,k*sc,k*r.left,k*r.top);
+  for(const c of letterLayout(el,r)){ctx.font=c.f;ctx.fillText(c.c,c.x,c.y);ctx.strokeText(c.c,c.x,c.y);}}}
+const MM=document.createElement('canvas'),mmx=MM.getContext('2d'),mmTex=gl.createTexture();let mmKey='';
+function drawMainMask(){const k=1/3,mw=Math.ceil(W*k),mh=Math.ceil(H*k),inW=wz.k>=0&&ew>=1&&curW()!=='gallery',
+    txt=inW?[]:maskText(MAIN_MASK_SEL),key=mw+'x'+mh+':'+txt.map(t=>t.k).join('|');   // a world covers the solar system: nothing to clear
+  gl.activeTexture(gl.TEXTURE4);gl.bindTexture(gl.TEXTURE_2D,mmTex);gl.uniform1i(U.u_tm,4);
+  if(key!==mmKey){mmKey=key;if(MM.width!==mw||MM.height!==mh){MM.width=mw;MM.height=mh;}
+    mmx.setTransform(1,0,0,1,0,0);mmx.clearRect(0,0,mw,mh);mmx.textAlign='center';mmx.textBaseline='middle';mmx.fillStyle=mmx.strokeStyle='#fff';mmx.lineWidth=3;
+    drawMaskText(mmx,k,txt);
+    gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,MM);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);}
+  gl.activeTexture(gl.TEXTURE0);}
+function drawGlyphMask(){const els=[...stEls.sl,...stEls.fc].filter(e=>e.isConnected),txt=maskText(MASK_SEL),key=wCols+'x'+wRows+':'+els.map(e=>e.style.opacity>0?e.__x+','+e.__y:'-').join('|')+'#'+txt.map(t=>t.k).join('|');
   if(key===tmKey){gl.activeTexture(gl.TEXTURE3);gl.bindTexture(gl.TEXTURE_2D,tmTex);gl.uniform1i(WU.w_tm,3);gl.activeTexture(gl.TEXTURE0);return;}tmKey=key;
   if(TM.width!==wCols||TM.height!==wRows){TM.width=wCols;TM.height=wRows;}const k=DPR/wCell;
   tmx.setTransform(1,0,0,1,0,0);tmx.clearRect(0,0,wCols,wRows);tmx.setTransform(k,0,0,k,0,0);tmx.textAlign='center';tmx.textBaseline='middle';tmx.fillStyle=tmx.strokeStyle='#fff';tmx.lineWidth=3;
   for(const el of els){if(!el.__g||+el.style.opacity<=0||el.__x==null)continue;tmx.globalAlpha=1;
     for(const c of el.__g){tmx.font=c.f;tmx.fillText(c.c,el.__x+c.x,el.__y+c.y);tmx.strokeText(c.c,el.__x+c.x,el.__y+c.y);}}
-  drawMaskText(txt);
+  drawMaskText(tmx,DPR/wCell,txt);
   gl.activeTexture(gl.TEXTURE3);gl.bindTexture(gl.TEXTURE_2D,tmTex);gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,TM);
   gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);
   gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);gl.uniform1i(WU.w_tm,3);gl.activeTexture(gl.TEXTURE0);}
@@ -932,6 +946,7 @@ function frame(now){
      lhint.style.transform=`translate(${Math.round(pos[F].x)}px,${Math.round(pos[F].y-pos[F].r-22)}px) translateX(-50%)`;}}
   gl.useProgram(pr);gl.viewport(0,0,cv.width,cv.height);
   gl.clearColor(.106,.106,.106,1);gl.clear(gl.COLOR_BUFFER_BIT);
+  drawMainMask();
   gl.uniform2f(U.u_res,W,H);gl.uniform2f(U.u_c,CX,CY);gl.uniform1f(U.u_dpr,DPR);gl.uniform1f(U.u_t,now/1000);
   gl.uniform1f(U.u_s,S);gl.uniform1f(U.u_rot,ROT);gl.uniform1f(U.u_dot,Math.max(1.5,SP*.52));gl.uniform1f(U.u_pdot,(SPD-1)/DPR);gl.uniform1f(U.u_rb,RB);gl.uniform1f(U.u_spp,SPP);gl.uniform1f(U.u_bdot,(SBD-1)/DPR);
   gl.uniform1f(U.u_ring,ring);gl.uniform1f(U.u_spin,sysA);gl.uniform1f(U.u_sea,1);gl.uniform1f(U.u_e,Math.max(e,eB));bhS+=(Math.min(1,Math.abs(bhSpinV)/5)-bhS)*Math.min(1,dt*2.5);gl.uniform2f(U.u_fl,flX,flY);{const gz=wz.k>=0&&curW()==='gallery'?ew:0;gl.uniform1f(U.u_gz,gz);gl.uniform1f(U.u_wv,ew);gl.uniform1f(U.u_bsp,SPB);
