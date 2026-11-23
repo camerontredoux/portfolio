@@ -2,7 +2,7 @@
 
 My portfolio, drawn as a dithered solar system in WebGL2. Planets are sections, moons are projects, comets are updates, the black hole is the archive.
 
-No build step: it's plain HTML, CSS and ES modules in `public/`, served as-is by a Cloudflare Worker at https://portfolio.camtredoux.workers.dev.
+No build step: it's plain HTML, CSS and ES modules in `public/`, served as-is by a Cloudflare Worker at https://tredoux.dev.
 
 ## Editing content
 

@@ -2,6 +2,10 @@
 	"$schema": "./node_modules/wrangler/config-schema.json",
 	"name": "portfolio",
 	"compatibility_date": "2026-11-01",
+	"routes": [
+		{ "pattern": "tredoux.dev", "custom_domain": true },
+		{ "pattern": "www.tredoux.dev", "custom_domain": true }
+	],
 	"assets": {
 		"directory": "./public"
 	},
