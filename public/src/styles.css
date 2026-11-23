@@ -104,6 +104,7 @@ button:focus-visible{outline:1px solid var(--dim);outline-offset:3px}
 #world .imp .x{color:#f6f2ea;text-transform:none;letter-spacing:.01em;font-size:12.5px}
 #world .imp .b{display:flex;gap:20px;justify-content:center;align-items:baseline;margin-top:12px;color:#d9d4ca;font-size:10.5px}#world .imp button,#world .imp a{color:var(--ink)}#world .imp.live button,#world .imp.live a{pointer-events:auto}#world .imp .b{transition:opacity .4s}#world .imp:not(.live) .b{opacity:.35}#world .imp a{text-decoration:underline 1px var(--dim);text-underline-offset:4px}
 #world .imp .n,#world .imp .x,#world .imp a,#world .imp button{color:#fff;text-shadow:0 0 1px #000,0 0 2px #000,0 0 8px rgba(255,255,255,.28)}
+#world .imp a{transition:text-shadow .2s,text-decoration-color .2s}#world .imp a:hover{text-decoration-color:#fff;text-shadow:0 0 1px #000,0 0 2px #000,0 0 6px rgba(255,255,255,.7),0 0 14px rgba(255,255,255,.45)}
 @media(max-width:699px){#world .imp .n{font-size:18px}#world .imp{bottom:80px}}
 #world .wh{left:50%;top:auto;bottom:54px;transform:translateX(-50%);color:#fff;text-shadow:0 0 1px #000,0 0 2px #000,0 0 8px rgba(255,255,255,.28);font-size:10.5px;white-space:nowrap;transition:opacity .6s}
 #lhint{position:fixed;left:0;top:0;z-index:2;color:var(--dim);font-size:10px;white-space:nowrap;opacity:0;pointer-events:none;transition:opacity .4s}
