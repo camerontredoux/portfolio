@@ -281,13 +281,13 @@ void main(){
     else if(abs(float(pk)-u_foc)>.5||h(vec3(a.xy*97.,4.+float(mi)))>=u_bigA||u_moonS[mi]>.5) show=false;
     bool open_=abs(float(mi)-u_mv.w)<.5;
     if(open_&&h(vec3(a.xy*97.,6.))<u_mv2.y) show=false;
-    vec2 a2=a.xy, gq=a.xy*M.z; bool fixedP=!gone&&!fly;
+    vec2 a2=a.xy, gq=a.xy*M.z; bool fixedP=!fly;
     if(fixedP){float pt=gPitch();gq=floor(a.xy*u_mrb[mi]/pt+.5)*pt;a2=gq/clamp(M.z,1.,u_mrb[mi]);if(dot(a2,a2)>1.)show=false;}
     float z=sqrt(max(0.,1.-dot(a2,a2))); vec3 n=vec3(a2,z);
     float dif=max(dot(n,u_L[pk]),0.);
     float I=pow(dif,1.3)*1.35+.13*(1.-dif)+pow(1.-z,4.)*.12;
     if(I<b) show=false;
-    p=fixedP?gSnap(M.xy)+gq:M.xy+a.xy*M.z; size=gone||fly?max(u_bdot*M.z/u_mrb[mi],.5):u_bdot; alpha=gone||fly||open_?1.:(1.-u_mv2.x)*(1.-u_wv);
+    p=fixedP?gSnap(M.xy)+gq:M.xy+a.xy*M.z; size=fly?max(u_bdot*M.z/u_mrb[mi],.5):u_bdot; alpha=gone||fly||open_?1.:(1.-u_mv2.x)*(1.-u_wv);
     if(!gone&&!fly&&!open_&&M.w<0.&&distance(p,u_pl[pk].xy)<u_pl[pk].z*1.01) show=false;
     if(abs(float(mi)-u_wait)<.5) col=mix(col,vec3(1.,.36,.16)*max(col.r,max(col.g,col.b))*1.05,u_ring);
   } else if(kind==9){                            // ripple ring when you click a moon
