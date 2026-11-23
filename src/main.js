@@ -456,19 +456,19 @@ function worldTap(x,y){const t=curW();
       if(Math.abs(x-q.x)<b[0]*q.k+10&&Math.abs(y-q.y)<b[1]*q.k+10&&q.z<hz){hz=q.z;hit=i;}});
     if(hit>=0){camV=0;openMem(hit);}return;}
   if(t==='strata'){const {y0}=SL();for(const f of FOS()){const fy=y0+f.y-depth;if(x>f.x&&x<f.x+f.s&&y>fy&&y<fy+f.s){if(f.u)window.open(f.u,'_blank','noopener');return;}}}}
+// ---- trackpad / wheel spinning: one place for direction and feel, shared by every view that spins ----
+const SPIN_DIR=-1;                                     // flip this to reverse trackpad spinning everywhere
+function wheelAmount(e){const k=e.deltaMode===1?16:1,dx=e.deltaX*k,dy=e.deltaY*k;return SPIN_DIR*(Math.abs(dx)>Math.abs(dy)?dx:dy);}
+// what can spin right now, and how a nudge of d (in radians) moves it; null if nothing should
+function spinTarget(){
+  if(drag.on||wz.k>=0||mz.target===1)return null;
+  if(bz.target===1)return {scale:1/Math.max(20,bhScr.R*1.6)*.5,max:14,nudge:d=>{bhSpin+=d;bhSpinV=Math.max(-14,Math.min(14,bhSpinV*.85+d*10));}};
+  const F=zoom.focus;
+  if(F>=0&&zoom.target===1)return {scale:.6/Math.max(60,pos[F].r),nudge:d=>{PL[F].ph+=d;PL[F].moff+=d;spinV=Math.max(-6,Math.min(6,spinV*.85+d*8));}};
+  if(F<0&&zoom.target===0)return {scale:.0016,nudge:d=>{sysA+=d;sysV=Math.max(-6,Math.min(6,sysV*.85+d*7.5));}};
+  return null;}
 addEventListener('wheel',e=>{
-  // solar system view: the trackpad spins it. Fingers moving left (or scrolling down) turn it clockwise; right (or up) the other way.
-  if(wz.k<0&&zoom.focus<0&&zoom.target===0&&bz.target===0&&mz.target===0&&!drag.on){e.preventDefault();
-    const k=e.deltaMode===1?16:1,dx=e.deltaX*k,dy=e.deltaY*k,d=-(Math.abs(dx)>Math.abs(dy)?dx:dy);
-    sysA+=d*.0016;sysV=Math.max(-6,Math.min(6,sysV*.85+d*.012));return;}
-  // inside the black hole: the trackpad spins the disk, same as dragging
-  if(bz.target===1&&mz.target===0&&wz.k<0&&!drag.on){e.preventDefault();
-    const k=e.deltaMode===1?16:1,dx=e.deltaX*k,dy=e.deltaY*k,d=(Math.abs(dx)>Math.abs(dy)?dx:dy)/Math.max(20,bhScr.R*1.6)*.5;
-    bhSpin+=d;bhSpinV=Math.max(-14,Math.min(14,bhSpinV*.85+d*10));return;}
-  // landed on a planet: the trackpad turns the planet (and its moons) the same way dragging does
-  {const F=zoom.focus;if(wz.k<0&&F>=0&&zoom.target===1&&mz.target===0&&bz.target===0&&!drag.on){e.preventDefault();
-    const k=e.deltaMode===1?16:1,dx=e.deltaX*k,dy=e.deltaY*k,d=-(Math.abs(dx)>Math.abs(dy)?dx:dy)/Math.max(60,pos[F].r)*.6;
-    PL[F].ph+=d;PL[F].moff+=d;spinV=Math.max(-6,Math.min(6,spinV*.85+d*8));return;}}
+  {const T=spinTarget();if(T){e.preventDefault();T.nudge(wheelAmount(e)*T.scale);return;}}
   if(wz.k<0||wz.target!==1)return;monoFly=null;e.preventDefault();wTouched=true;const t=curW(),d=e.deltaY+e.deltaX;
   if(t==='crater'){crZoom=Math.max(-.6,Math.min(1,crZoom-e.deltaY*.002));crYawT+=e.deltaX*.004;}
   if(t==='surface')camV=Math.max(-30,Math.min(30,camV+d*.025));
