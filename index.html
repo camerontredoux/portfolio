@@ -1,16 +1,68 @@
 <!DOCTYPE html>
-<html lang="en" class="scroll-smooth selection:bg-sky-50 selection:text-blue-400">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Cameron Tredoux</title>
-    <meta name="description" content="I'm Cameron Tredoux and I'm a computer science major at CU Boulder and a software engineer intern at Keysight Technology. I specialize in fullstack development and mainly use Rust and TypeScript when I create new projects.">
-    <script type="module" crossorigin src="/assets/index.a162674f.js"></script>
-    <link rel="stylesheet" href="/assets/index.4fb2c8ed.css">
-  </head>
-  <body>
-    <div id="root"></div>
-    
-  </body>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Cameron Tredoux</title>
+<meta name="description" content="Cameron Tredoux: software engineer in Washougal, WA. Building web apps at ByteBot and Studio 2 Stadium, formerly Keysight Technologies. B.S. in Computer Science, CU Boulder.">
+<meta name="theme-color" content="#1b1b1b">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<meta property="og:title" content="Cameron Tredoux">
+<meta property="og:description" content="A portfolio drawn as a dithered solar system.">
+<meta property="og:image" content="https://camerontredoux.github.io/og.png">
+<meta property="og:url" content="https://camerontredoux.github.io/">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="preload" href="src/main.js" as="script" crossorigin>
+<link rel="stylesheet" href="src/styles.css">
+</head>
+<body>
+<canvas id="c"></canvas><div id="bloom"></div>
+
+<nav id="nav" class="hud">
+  <button data-k="0"><span>Work</span><sup>1</sup></button>
+  <button data-k="1"><span>Writing</span><sup>2</sup></button>
+  <button data-k="3"><span>Starlee</span><sup>3</sup></button>
+  <button data-k="2"><span>Resume</span><sup>4</sup></button>
+</nav>
+
+<div id="where" class="hud">
+  <span class="city">Washougal</span><u id="date">—</u><b id="clock">00:00:00</b>
+</div>
+
+<div id="memv"><canvas></canvas><div class="t"></div><div class="s"></div><div class="d"></div></div>
+<button id="back" class="hud">← Back to orbit</button><button id="rest" class="hud">↩ Bring it back</button>
+<div id="hint" hidden></div>
+
+<div class="lab planet" id="l0"><div class="n">Work<sup>1</sup></div><div></div></div>
+<div class="lab planet" id="l1"><div class="n">Writing<sup>2</sup></div><div></div></div>
+<div class="lab planet" id="l3"><div class="n">Starlee<sup>3</sup></div><div></div></div>
+<div class="lab planet" id="l2"><div class="n">Resume<sup>4</sup></div><div></div></div>
+<div class="lab planet" id="l4" style="display:none"><div class="n"></div><div id="dw"></div></div>
+<div id="ret"><i class="a"></i><i class="b"></i><i class="c"></i><i class="d"></i></div><div id="cLead"></div><div id="card"><div class="ttl" id="cTtl"></div><div class="meta" id="cMeta"></div><div class="btns"><button id="cFocus"><b>↵</b> Focus</button><button id="cOpen"><b>→</b> Open</button><button id="cMin"><b>_</b> Min</button><button id="cClose"><b>×</b> Close</button></div></div><div id="cApp" hidden></div>
+<div class="lab" id="bhl" hidden><div class="n">Void</div><div id="bhc"></div></div>
+<div class="lab" id="beltl"><div id="beltc"></div></div>
+<div id="facts"></div>
+<div id="proj"></div>
+<div id="world"></div><div id="lhint"></div>
+<div id="mtitle"><div id="mtApp"></div><div class="n" id="mtTtl"></div></div>
+<div id="isls"></div><div class="lab" id="mtip" style="opacity:0"><div class="n"></div><div></div></div><div id="islList"></div>
+
+
+<main id="fallback" hidden></main>
+<section class="sr" aria-label="About">
+  <h1>Cameron Tredoux</h1>
+  <p>Software engineer in Washougal, Washington.</p>
+  <h2>Work</h2>
+  <ul>
+    <li>ByteBot, 2025 to now: building web apps for clients with React, Vue, Node and Postgres. <a href="https://bytebot.io">bytebot.io</a></li>
+    <li>Studio 2 Stadium, 2023 to now. <a href="https://studio2stadium.com">studio2stadium.com</a></li>
+    <li>Keysight Technologies, 2022 to 2025. <a href="https://www.keysight.com">keysight.com</a></li>
+  </ul>
+  <h2>Education</h2>
+  <p>University of Colorado Boulder, B.S. in Computer Science, magna cum laude, 2024.</p>
+  <p><a href="https://github.com/camerontredoux">GitHub</a></p>
+</section>
+<noscript><p style="padding:40px;text-transform:none">This site draws a solar system with JavaScript. Turn JavaScript on to see it.</p></noscript>
+<script type="module" src="src/main.js"></script>
+</body>
 </html>
