@@ -441,7 +441,7 @@ function drawMainMask(){const k=1/2,mw=Math.ceil(W*k),mh=Math.ceil(H*k),inW=wz.k
   gl.activeTexture(gl.TEXTURE4);gl.bindTexture(gl.TEXTURE_2D,mmTex);gl.uniform1i(U.u_tm,4);
   if(key!==mmKey){mmKey=key;if(MM.width!==mw||MM.height!==mh){MM.width=mw;MM.height=mh;}
     mmx.setTransform(1,0,0,1,0,0);mmx.clearRect(0,0,mw,mh);mmx.textAlign='center';mmx.textBaseline='middle';mmx.fillStyle=mmx.strokeStyle='#fff';mmx.lineWidth=3;
-    mmx.filter='blur(1px)';drawMaskText(mmx,k,txt);mmx.filter='none';   // soft edges: dots fade as a moving label slides over them instead of popping
+    drawMaskText(mmx,k,txt);
     gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,MM);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);
     gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);}
   gl.activeTexture(gl.TEXTURE0);}

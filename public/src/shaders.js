@@ -364,7 +364,7 @@ void main(){
   vec2 clip=p/u_res*2.-1.; clip.y=-clip.y;
   gl_Position=show?vec4(clip,0,1):vec4(2,2,2,1);
   gl_PointSize=show?max(1.,floor(size*u_dpr+.5)):0.;
-  col*=1.-.5*smoothstep(0.,.75,texture(u_tm,p/u_res).a);   // half-dim: text reads, but planets still show through
+  col*=1.-.94*smoothstep(0.,.75,texture(u_tm,p/u_res).a);   // dots fade by how much text covers them, so moving labels don't pop dots on and off
   v=vec4(col,alpha);
 }`;
 
