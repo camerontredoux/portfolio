@@ -24,11 +24,6 @@ export const ISL=[
 // What each planet calls its moons, and the subtitle under its name.
 export const PLN=[{noun:'project',sub:'2021–26'},{noun:'essay',sub:'latest nov'},{noun:'job',sub:'about'},{noun:'moon',sub:'Lumi'},{noun:'experiment',sub:'new'}];
 
-// The update a comet carries when it hits a planet (Resume and Starlee are shielded). i = the moon it points at, -1 for none.
-export const UPD={0:{t:'Tidepool v2 shipped',x:'Tide charts now scrub at 60fps, even on old phones.',i:0},
-  1:{t:'New essay: On dithering',x:'Why a 1-bit image can feel warmer than a photograph.',i:3},
-  2:{t:'Booking for spring',x:'Open for two new projects from March. Say hello.',i:-1}};
-
 // Planet names and their numbers, by planet index.
 export const APPN=['Work','Writing','Resume','Starlee','Lab'],SUP=['1','2','4','3','5'];
 

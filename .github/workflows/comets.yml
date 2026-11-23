@@ -1,0 +1,40 @@
+name: comets
+
+# Every 20 minutes, collect newly merged PRs from the repos in comets.config.json,
+# write them to data/comets.json, and republish the site if anything changed.
+on:
+  schedule:
+    - cron: '*/20 * * * *'
+  workflow_dispatch:
+  push:
+    paths: [comets.config.json, scripts/fetch-comets.mjs]
+
+permissions:
+  contents: write
+  pages: write
+
+concurrency: comets
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Fetch merged pull requests
+        run: node scripts/fetch-comets.mjs
+        env:
+          GH_TOKEN: ${{ secrets.COMETS_TOKEN }}
+      - name: Publish if there are new comets
+        run: |
+          if git diff --quiet data/comets.json; then echo "no new comets"; exit 0; fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/comets.json
+          git commit -m "comets: new merged pull requests"
+          git push
+          gh api -X POST "repos/${{ github.repository }}/pages/builds" || true
+        env:
+          GH_TOKEN: ${{ github.token }}

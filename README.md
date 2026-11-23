@@ -14,9 +14,17 @@ Almost everything you'd change is in **`src/content.js`**:
 | The Resume dig (eras, logos, links) | `STRATA` |
 | Starlee's monoliths (photos, titles, lines) | `MEM` |
 | Planet field notes | `FACTS` |
-| Comet updates | `UPD` |
 
 Images live in `assets/`. A project's `imgs` takes up to two image paths; a monolith takes `img` (the stone) and `full` (the photo that opens when you tap it).
+
+## Comets
+
+Every merged pull request in the repos listed in **`comets.config.json`** flies in as a comet and hits Work. Tapping its crater shows the repo, PR number, title and a one-line description. Private repos show all of that but no link.
+
+- **One-liner:** add a line like `comet: Faster PDF export for invoices` anywhere in the PR description. Without it, the first plain sentence of the description is used.
+- **Refresh:** `.github/workflows/comets.yml` runs every 20 minutes (and on demand from the Actions tab), writes `data/comets.json`, and republishes if anything is new.
+- **Token:** the workflow reads a repository secret named `COMETS_TOKEN`: a fine-grained personal access token with read-only *Pull requests* and *Metadata* access to the listed repos.
+- **Visitors** see each PR once: first-time visitors get the latest three, returning visitors get whatever merged since their last visit.
 
 ## Running locally
 

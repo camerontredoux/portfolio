@@ -1,5 +1,6 @@
 import { VS, FS, WVS, WFS, BFS } from './shaders.js';
-import { ISL, PLN, UPD, APPN, SUP, FACTS, SCAPS, STRATA, MEM } from './content.js';
+import { startCometFeed, nextComet, ago } from './comets.js';
+import { ISL, PLN, APPN, SUP, FACTS, SCAPS, STRATA, MEM } from './content.js';
 import { renderFallback } from './fallback.js';
 
 // quality: the planet worlds (Starlee's ocean, the Resume dig, impact sites) are the only heavy scenes.
@@ -167,13 +168,13 @@ const islList=document.getElementById('islList');let listFor=-2;
 const islLabs=ISL.map((s,i)=>document.getElementById('i'+i));
 const mtip=document.getElementById('mtip');
 // comets: a notification streaks in and hits its planet
-const comet={on:false,t:0,dur:2.3,sx:0,sy:0,k:4,bend:0,next:6,hx:0,hy:0,ang:0};
-function launch(k){
+const comet={on:false,t:0,dur:2.3,sx:0,sy:0,k:0,bend:0,next:3,hx:0,hy:0,ang:0,pr:null};
+const COMET_PLANET=0,MERGE_SLOT=30;   // merged PRs land on Work
+function launch(k,pr){comet.pr=pr||null;
   const side=Math.random()*4|0,r=Math.random();
   [comet.sx,comet.sy]=[[r*W,-20],[W+20,r*H],[r*W,H+20],[-20,r*H]][side];
   Object.assign(comet,{on:true,t:0,k,bend:(Math.random()<.5?-1:1)*(.18+Math.random()*.2)});
 }
-// SAMPLE CONTENT: the update each comet carries, by the section it lands on
 const CR_MT=3.2;   // seconds the meteor spends flying in
 let crSite=null,crRep=0,crYaw=0,crYawT=0,crZoom=0;
 // where a crater sits on screen right now (it turns with its planet); null if it's on the far side or faded
@@ -183,12 +184,12 @@ function craterScreen(c){const k=c.p,P=pos[k];if(!P)return null;const age=c.ack?
 function pickCrater(x,y){let best=null,bd=1e9;for(const c of craters){const q=craterScreen(c);if(!q)continue;const d=Math.hypot(x-q.x,y-q.y);if(d<q.r&&d<bd){bd=d;best=c;}}return best;}
 let crPend=null;
 function enterCrater(c){if(!c.ack){c.ack=true;c.t=performance.now()/1000-1.5;}   // seen: now it can cool
-  const q=craterScreen(c)||{x:CX,y:CY};const u=c.u||UPD[c.p]||UPD[2];
-  crSite={t:c.t,sx:q.x,sy:q.y,slot:u.i>=0?slotOf(u.i,0):slotOf(4,1),u,p:c.p};crRep=.3;crYaw=crYawT=.6;crZoom=0;   /* meteor already on its way as the scene fades in */
+  const q=craterScreen(c)||{x:CX,y:CY};const u=c.u;
+  crSite={t:c.t,sx:q.x,sy:q.y,slot:MERGE_SLOT,u,p:c.p};crRep=.3;crYaw=crYawT=.6;crZoom=0;   /* meteor already on its way as the scene fades in */
   closeFacts();wz.k=c.p;wz.mode='crater';wz.target=1;wTouched=false;
-  const ago=Math.max(1,Math.round((performance.now()/1000-c.t)/60));
-  worldEl.innerHTML=`<div class="imp"><div class="k">impact · ${APPN[c.p]}<sup>${SUP[c.p]}</sup> · ${ago<2?'just now':ago+' min ago'}</div><div class="n">${u.t}</div><div class="x">${u.x}</div>`+
-    `<div class="b">${u.i>=0?'<span>tap the shard to open ↗</span>':''}<button id="rp">↺ replay impact</button></div></div><div class="wh">drag to circle the crater</div>`;
+  const esc=t=>String(t).replace(/[&<>"]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[ch]);
+  worldEl.innerHTML=`<div class="imp"><div class="k">merged · ${esc(u.name)} · #${u.number} · ${ago(u.merged_at)}</div><div class="n">${esc(u.title)}</div>${u.line?`<div class="x">${esc(u.line)}</div>`:''}`+
+    `<div class="b">${u.url?`<a href="${esc(u.url)}" target="_blank" rel="noopener">view pull request ↗</a>`:''}<button id="rp">↺ replay impact</button></div></div><div class="wh">drag to circle the crater</div>`;
   worldEl.querySelector('#rp').onclick=e=>{e.stopPropagation();crRep=0;};}
 const craters=[],crU=new Float32Array(24),crP=new Float32Array(6).fill(-9);
 const ACT0=[1,.6,.15,.5,.35],act=[...ACT0];
@@ -197,7 +198,7 @@ function impact(k){
   // crater where the comet struck: the side of the sphere facing its approach, stored in the planet's own frame so it spins with it
   {let nx=-Math.cos(comet.ang)*.8,ny=-Math.sin(comet.ang)*.8,nz=.6;const l=Math.hypot(nx,ny,nz);nx/=l;ny/=l;nz/=l;
    const ph=PL[k].ph,cs=Math.cos(ph),sn=Math.sin(ph);
-   craters.push({p:k,d:[cs*nx+sn*nz,ny,-sn*nx+cs*nz],t:performance.now()/1000,u:UPD[k]});
+   craters.push({p:k,d:[cs*nx+sn*nz,ny,-sn*nx+cs*nz],t:performance.now()/1000,u:comet.pr});
    if(craters.length>6)craters.shift();
    crU.fill(0);crP.fill(-9);craters.forEach((c,i)=>{crU.set([...c.d,c.t],i*4);crP[i]=c.p;});}
   act[k]=Math.min(2,act[k]+.9);
@@ -444,10 +445,10 @@ function worldDrag(dx,dy,dt){wTouched=true;const t=curW();
     else yawT=Math.max(-.45,Math.min(.45,yawT+dx*.0022));}
   if(t==='strata'){const {max}=SL();depth=Math.max(0,Math.min(max,depth-dy));depthV=depthV*.5+(-dy/dt)*.5;}}
 function worldTap(x,y){const t=curW();
-  if(t==='crater'){const u=crSite.u;if(u.i<0)return;const af=NARROW?1.65:1,yw=crYaw,dist=(7.6-1.8*crZoom)*af,ro=[Math.sin(yw)*dist,(4.6+.8*crZoom)*af,-Math.cos(yw)*dist],
+  if(t==='crater'){const u=crSite.u;if(!u.url)return;   /* tapping the shard opens the pull request (public repos only) */const af=NARROW?1.65:1,yw=crYaw,dist=(7.6-1.8*crZoom)*af,ro=[Math.sin(yw)*dist,(4.6+.8*crZoom)*af,-Math.cos(yw)*dist],
       f=[-ro[0],-.2-ro[1],-ro[2]],fl=Math.hypot(...f),fw=f.map(v=>v/fl);let rt=[fw[2],0,-fw[0]];const rl=Math.hypot(...rt);rt=rt.map(v=>v/rl);
       const up=[fw[1]*rt[2]-fw[2]*rt[1],fw[2]*rt[0]-fw[0]*rt[2],fw[0]*rt[1]-fw[1]*rt[0]],q=project({ro,fw,rt,up},[0,.2,0]);
-    if(q&&Math.hypot(x-q.x,y-q.y)<1.4*q.k)openFromWorld(u.i);return;}
+    if(q&&Math.hypot(x-q.x,y-q.y)<1.4*q.k)window.open(u.url,'_blank','noopener');return;}
   if(t==='gallery'){const T=GT_T,gy=NARROW?CY-30:CY-24;
     for(let ti=0;ti<GT.length;ti++){const cx=CX+(ti-galX)*(T+GT_G);if(Math.abs(x-cx)<T/2&&Math.abs(y-gy)<T/2){
       if(Math.abs(ti-galX)>.35)galT=ti;else openFromWorld(GT[ti].i);return;}}}
@@ -845,7 +846,8 @@ function frame(now){
     ret.style.opacity=1;ret.style.width=ret.style.height=rs+'px';ret.style.transform=`translate(${Math.round(q.x-rs/2)}px,${Math.round(q.y-rs/2)}px)`;
   }
   // comet
-  if(!comet.on){comet.next-=dt;if(comet.next<=0&&F<0&&bz.z===0&&!reduce){{const wts=PL.map((q,k)=>k===3||k===2||k===HIDE_PL?0:[.5,.32,.18,.12,.08][q.o]);/* Starlee and Resume are shielded: comets never target them */let r=Math.random()*wts.reduce((a,b)=>a+b),t=0;while(r>wts[t]){r-=wts[t];t++;}launch(t);}comet.next=18+Math.random()*14;}}
+  // comets only fly for real merged PRs, one at a time, a few seconds apart, and only while you're looking at the whole system
+  if(!comet.on){comet.next-=dt;if(comet.next<=0&&F<0&&bz.z===0&&!reduce&&!document.hidden){const pr=nextComet();if(pr)launch(COMET_PLANET,pr);comet.next=pr?5+Math.random()*3:2;}}
   else{
     comet.t+=dt;const u=Math.min(1,comet.t/comet.dur),uu=u*u*(1.6-.6*u);
     const T=pos[comet.k],mx=(comet.sx+T.x)/2,my=(comet.sy+T.y)/2,dx=T.x-comet.sx,dy=T.y-comet.sy;
@@ -1033,6 +1035,13 @@ function art(g,kind,v){
   else {for(let i=0;i<14;i++){const x=R2(i)*256,y=R2(i+20)*256,r=30+R2(i+40)*60;g.fillStyle=rg(x,y,r,`rgba(255,${180+R2(i)*70|0},${120+R2(i+5)*90|0},.85)`,'rgba(0,0,0,0)');g.fillRect(0,0,256,256);}}
 }
 ISL.forEach((it,i)=>{for(let k=0;k<2;k++){const sl=slotOf(i,k);ag.save();ag.translate((sl%4)*256,Math.floor(sl/4)*256);ag.beginPath();ag.rect(0,0,256,256);ag.clip();art(ag,it.art,k);ag.restore();}});
+// the shard in a PR's crater: a merge glyph (two branches joining)
+{const sl=MERGE_SLOT;ag.save();ag.translate((sl%4)*256,Math.floor(sl/4)*256);ag.fillStyle='#050505';ag.fillRect(0,0,256,256);
+ ag.strokeStyle='#f4efe6';ag.fillStyle='#f4efe6';ag.lineWidth=16;ag.lineCap='round';
+ ag.beginPath();ag.moveTo(92,62);ag.lineTo(92,194);ag.stroke();
+ ag.beginPath();ag.moveTo(92,78);ag.bezierCurveTo(92,130,168,110,168,166);ag.stroke();
+ for(const [x,y] of [[92,62],[92,194],[168,180]]){ag.beginPath();ag.arc(x,y,20,0,7);ag.fill();}
+ ag.fillStyle='#050505';for(const [x,y] of [[92,62],[92,194],[168,180]]){ag.beginPath();ag.arc(x,y,8,0,7);ag.fill();}ag.restore();}
 logosToAtlas();MEM.forEach((m,j)=>{const sl=MEM_SLOT+j;ag.save();ag.translate((sl%4)*256,Math.floor(sl/4)*256);ag.beginPath();ag.rect(0,0,256,256);ag.clip();art(ag,m.art,j%2);ag.restore();
   if(m.img){const im=new Image();im.onload=()=>{const sc=Math.max(256/im.width,256/im.height);ag.save();ag.translate((sl%4)*256,Math.floor(sl/4)*256);ag.fillStyle='#000';ag.fillRect(0,0,256,256);ag.drawImage(im,(256-im.width*sc)/2,(256-im.height*sc)/2,im.width*sc,im.height*sc);ag.restore();uploadAtlas();};im.src=m.img;}});
 uploadAtlas();
@@ -1042,5 +1051,5 @@ ISL.forEach((it,i)=>it.imgs.slice(0,2).forEach((src,k)=>{const im=new Image();im
   ag.drawImage(im,(256-im.width*sc)/2,(256-im.height*sc)/2,im.width*sc,im.height*sc);ag.restore();uploadAtlas();};im.src=src;}));
 // starting states from the content: archived projects begin in the black hole, works in progress in the belt
 ISL.forEach((it,i)=>{const mo=MOONS[i];if(it.status==='archive'){mo.st='gone';swallowed.push(i);}else if(it.status==='wip'){mo.st='belt';mo.ba0=i*1.7;}});
-PL.forEach((_,k)=>reslot(k));updCounts();setTimeout(openBySlug,700);
+PL.forEach((_,k)=>reslot(k));updCounts();setTimeout(openBySlug,700);startCometFeed();
 requestAnimationFrame(frame);
