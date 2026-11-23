@@ -1,4 +1,4 @@
-// Builds data/comets.json from the merged pull requests in the repos listed in comets.config.json.
+// Builds public/data/comets.json from the merged pull requests in the repos listed in comets.config.json.
 // Runs in GitHub Actions with GH_TOKEN set to a token that can read those repos' pull requests.
 //
 // What a comet shows: repo name, PR number, PR title, and a one-line description.
@@ -59,5 +59,5 @@ for (const full of cfg.repos) {
 }
 prs.sort((a, b) => b.merged_at.localeCompare(a.merged_at));
 const out = { prs: prs.slice(0, cfg.maxComets) };
-await writeFile(new URL('../data/comets.json', import.meta.url), JSON.stringify(out, null, 2) + '\n');
+await writeFile(new URL('../public/data/comets.json', import.meta.url), JSON.stringify(out, null, 2) + '\n');
 console.log(`wrote ${out.prs.length} comets`);

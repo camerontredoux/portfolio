@@ -1,5 +1,5 @@
 // Real comets: every merged pull request in the repos listed in comets.config.json.
-// A GitHub Action (.github/workflows/comets.yml) refreshes data/comets.json; this module reads it
+// A GitHub Action (.github/workflows/comets.yml) refreshes public/data/comets.json; this module reads it
 // and hands the engine one PR at a time, oldest first, each one exactly once per visitor.
 
 const FEED = 'data/comets.json';
