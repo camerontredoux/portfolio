@@ -267,7 +267,7 @@ cv.addEventListener('pointermove',e=>{
     sysA+=d;drag.hist.push([performance.now(),sysA]);while(drag.hist.length>12)drag.hist.shift();
     sysV=sysV*.5+d/dt*.5;}
 });
-function spinHole(dx,dt){const d=-dx/Math.max(20,bhScr.R/bhDv*1.6);bhSpin+=d;bhSpinV=bhSpinV*.4+d/dt*.6;}
+function spinHole(dx,dt){const d=-dx/Math.max(20,bhScr.R*1.6);bhSpin+=d;bhSpinV=bhSpinV*.4+d/dt*.6;}
 function endDrag(e){if(drag.on&&performance.now()-drag.t>90)bhSpinV*=.3;
   if(!drag.on)return;drag.on=false;
   const nowR=performance.now();
@@ -470,7 +470,7 @@ const bhWorld=()=>wz.k===BH_K?pull:null;
 const bhCtx={gl,el:worldEl,u:n=>n in wul?wul[n]:(wul[n]=gl.getUniformLocation(wpr,n)),
   get W(){return W;},get H(){return H;},get DPR(){return DPR;},get narrow(){return NARROW;},
   get t(){return performance.now()/1000;},get e(){return ew;},get leaving(){return wz.target!==1;},
-  get hole(){return {x:bhScr.x,y:bhScr.y,R:bhScr.R/bhDv};},get spin(){return [bhSpin,bhS,bhSpinV<-.3?-1:1];},get pointer(){return {x:m.tx,y:m.ty,down:drag.on};}};
+  get hole(){return {x:bhScr.x,y:bhScr.y,R:bhScr.R};},get spin(){return [bhSpin,bhS,bhSpinV<-.3?-1:1];},get pointer(){return {x:m.tx,y:m.ty,down:drag.on};}};
 function enterPull(){closeCard();closeFacts();wz.k=BH_K;wz.mode='pull';wz.target=1;wMoved=0;
   bhSpinV=(bhSpinV<0?-1:1)*Math.max(Math.abs(bhSpinV),9);   // the disc whips up as you fall in
   worldEl.innerHTML=`<div class="wh">${pull.hint}</div>`;pull.enter(bhCtx);}
@@ -543,7 +543,7 @@ function moonBack(){clearHash();mz.target=0;if(cardI>=0&&zoom.focus>=0)closeCard
 // bring a window to the front: its moon moves to the innermost slot and reads "now"
 // ---- windows leaving and returning: asteroid belt (minimize) and black hole (close) ----
 MOONS.forEach(m=>{m.st='moon';m.t=1;});
-const mrb=new Float32Array(12),moonS=new Float32Array(12),swallowed=[];let bhPulse=-99,bhScr={x:0,y:0,R:0},bhDv=1;
+const mrb=new Float32Array(12),moonS=new Float32Array(12),swallowed=[];let bhPulse=-99,bhScr={x:0,y:0,R:0};
 let monoF=-1,projI=-1,gal=0,imgSwap={cur:0,prev:0,t0:-9},sysS=0,flX=1,flY=1,fShift=0,bhSpin=0,bhSpinV=0,bhS=0,vMoonA=0,vMoonV=.22;const BSP=.05,bz={z:0,target:0};
 function arrived(i){const t=performance.now()/1000,P=pos[MOONS[i].p];
   mpulse[i]=t;ring2.i=i;ring2.t0=t;if(P){ck.x=P.x;ck.y=P.y;ck.t0=t;}flash(labs[MOONS[i].p]);flash(islLabs[i]);}
@@ -708,8 +708,7 @@ function frame(now){
   if(F>=0){const P=P0[F];k=Math.exp(e*Math.log(RB/P.r));
     ps={x:P.x+(CX-P.x)*e,y:P.y+(CY-fShift-P.y)*e};fx=P.x-(ps.x-CX)/k;fy=P.y-(ps.y-CY)/k;}
   else if(eB>0){   // fall into the black hole: it slides to the centre and grows until its disk fills the middle of the screen
-    bhDv=wz.k===BH_K?Math.exp(2.6*sstep(0,.55,ew)):1;   // the dive: the hole outgrows the screen before Pull comes up out of its dark
-    k=Math.exp(eB*Math.log(RT/BH0.R))*(wz.k===BH_K?(1+(pullR()/RT-1)*ew)*bhDv:1);
+    k=Math.exp(eB*Math.log(RT/BH0.R))*(wz.k===BH_K?(1+(pullR()/RT-1)*ew):1);
     const bx2=BH0.x+(CX-BH0.x)*eB,by2=BH0.y+(CY-BH0.y)*eB;fx=BH0.x-(bx2-CX)/k;fy=BH0.y-(by2-CY)/k;}
   const snap=v=>Math.round(v*DPR)/DPR;
   P0.forEach((P,i)=>{pos[i]={x:snap(CX+(P.x-fx)*k),y:snap(CY+(P.y-fy)*k),r:P.r*k};plU.set([pos[i].x,pos[i].y,pos[i].r,PL[i].ph],i*4);});

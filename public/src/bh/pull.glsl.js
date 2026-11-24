@@ -15,7 +15,7 @@ float pull_tex(float rho,float ang,float rot){
 float pull_ring(vec2 q,float r,out bool front){
   float s=pull_spin.y, tl=.28, rot=pull_t*.25+pull_spin.x*2.2;
   vec2 t=vec2(cos(tl)*q.x-sin(tl)*q.y,sin(tl)*q.x+cos(tl)*q.y), e=vec2(t.x,t.y/.2);
-  float rd=length(e); rd=1.3+max(rd-1.3,0.)*(1.+.6*s);
+  float rd=length(e); rd=1.3+max(rd-1.3,0.)*(1.+.6*s)*mix(2.2,1.,smoothstep(.1,1.,w_e));
   float I=0.; front=false;
   if(rd>1.3&&(e.y>0.||r>1.03)){
     float a=atan(e.y,e.x);
@@ -38,11 +38,10 @@ vec4 pull_plate(vec2 s,vec2 cell){
 }
 vec4 pull(vec2 cell){
   vec2 s=vec2((cell.x+.5)*w_cell,w_scr.y-(cell.y+.5)*w_cell);
-  // main.js dives the bz camera into the hole until its dark fills the screen; Pull then comes up out of that dark
-  if(hh(cell*.731+2.)>=smoothstep(.3,.55,w_e)) return vec4(0);
-  if(hh(cell*.517+5.)>=smoothstep(.5,.9,w_e)) return vec4(0.,0.,0.,.5);
-  bool late=hh(cell*.29+9.)<smoothstep(.8,1.,w_e);
+  // Pull sits on the bz hole while the camera grows it, and takes the screen over cell by cell, a little sooner near the hole
   vec2 d=s-pull_h.xy; float r=length(d), Rh=pull_h.z, x=r/Rh, th=atan(d.y,d.x);
+  if(hh(cell*.731+2.)*.75+.25*clamp((x-1.)/5.,0.,1.)>=smoothstep(.1,.85,w_e)) return vec4(0);
+  bool late=hh(cell*.29+9.)<smoothstep(.8,1.,w_e);
   vec4 P=pull_plate(s,cell);
   bool shadow=r<Rh;
   float L=0.; vec3 col=pull_hue(pull_heat.x*.3);
