@@ -469,7 +469,7 @@ const bhWorld=()=>wz.k===BH_K?pull:null;
 const bhCtx={gl,el:worldEl,u:n=>n in wul?wul[n]:(wul[n]=gl.getUniformLocation(wpr,n)),
   get W(){return W;},get H(){return H;},get DPR(){return DPR;},get narrow(){return NARROW;},
   get t(){return performance.now()/1000;},get e(){return ew;},get leaving(){return wz.target!==1;},
-  get hole(){return bhScr;},get pointer(){return {x:m.tx,y:m.ty,down:drag.on};},
+  get hole(){return bhScr;},get spin(){return [bhSpin,bhS,bhSpinV<-.3?-1:1];},get pointer(){return {x:m.tx,y:m.ty,down:drag.on};},
   projects:()=>swallowed.map(i=>({i,t:ISL[i].t,d:ISL[i].d,slug:ISL[i].slug,role:ISL[i].role,tools:ISL[i].tools,desc:ISL[i].desc,links:ISL[i].links,slots:[...Array(nImg(i))].map((_,g)=>slotOf(i,g))}))};
 function enterPull(){closeCard();closeFacts();wz.k=BH_K;wz.mode='pull';wz.target=1;wMoved=0;
   worldEl.innerHTML=`<div class="wh">${pull.hint}</div>`;pull.enter(bhCtx);}

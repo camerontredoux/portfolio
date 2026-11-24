@@ -25,14 +25,16 @@ The default export is an object with these keys:
 
 - `projects()`: the archived projects as `{i, t, d, slug, role, tools, desc, links, slots}`. The list can be empty. `links` are `{label, url}`, and `url` can be empty. `slots` are atlas slots for the project's images.
 - `t` (seconds), `W`, `H`, `DPR`, `narrow`, `pointer` (`{x, y, down}` in CSS px), `hole` (`{x, y, R}` on screen), `e` (0 to 1 while the world opens), `leaving`.
+- `spin`: the disc spin of the black hole as `[angle, speed, direction]`. Pass it to `bhDisc` so the disc turns as it does in the `bz` view.
 - `gl`, `u(name)`: the WebGL2 context and a cached uniform location in the world program.
 
 ## Shader (`pull.glsl.js`)
 
-The default export is GLSL that defines `vec4 pull(vec2 cell)`. It is placed in `WFS` in `../shaders.js`, after the shared helpers (`hh`, `n2`, `fbm`, `b8`, `BONE`).
+The default export is GLSL that defines `vec4 pull(vec2 cell)`. It is placed in `WFS` in `../shaders.js`, after the shared helpers (`hh`, `n2`, `fbm`, `b8`, `BONE`) and `BH_DISC`.
 
 - Start every uniform and helper name with `pull_`.
 - `cell` is a pixel of the low-res buffer. The screen position in device px, y down, is `vec2((cell.x+.5)*w_cell, w_scr.y-(cell.y+.5)*w_cell)`.
 - Shared uniforms: `w_res`, `w_scr`, `w_cell`, `w_t`, `w_dpr`, `w_e`, `w_fade`, `w_atl`. `w_ctr.xy` is the hole's centre and `w_ctr.z` its radius, in device px. `w_rev` is a reveal radius around the hole that grows to cover the screen.
+- `bhDisc(q, spin, t, w, big)` from `BH_DISC` in `../shaders.js` draws the black hole: the tilted accretion disc, the photon ring and the glow. The orbit and `bz` views use the same function, so the disc keeps its tilt from `bz` into Pull. `q` is the offset from the hole centre in hole radii, y down. The result is an intensity. Inside the shadow it is `0` except where the near side of the disc crosses in front.
 - The colours come from the black hole's own ramp in `VS` (`kind==13`): ember `(.95,.34,.08)`, amber `(1,.66,.24)`, white-hot `(1,.97,.86)`. `pull_hue(c)` maps 0 to 1 along that ramp.
 - Return `vec4(colour, a)`: `a = 1.` draws a lit dot, `a = .5` draws background, `a = 0.` shows the scene behind.
