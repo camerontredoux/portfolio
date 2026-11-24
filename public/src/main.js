@@ -722,7 +722,7 @@ function frame(now){
       !placed.some(b=>c.x<b.x+b.w&&b.x<c.x+lw&&c.y<b.y+b.h&&b.y<c.y+lh)&&
       !pos.some((q,j)=>{if(j===i||j===HIDE_PL||!q)return false;const cx=Math.max(c.x,Math.min(q.x,c.x+lw)),cy=Math.max(c.y,Math.min(q.y,c.y+lh));return Math.hypot(q.x-cx,q.y-cy)<(j===2?q.r*1.45:q.r)+6;});
     const was=L.__spot&&spots.find(c=>c.s===L.__spot.s&&c.v===L.__spot.v);   // keep a clear spot so labels don't flip back and forth
-    const c=foc||clear(spots[0])?spots[0]:(was&&clear(was)?was:spots.find(clear)||spots[0]);
+    const c=foc?was||spots[0]:clear(spots[0])?spots[0]:(was&&clear(was)?was:spots.find(clear)||spots[0]);   // the focused planet's label keeps its spot while the zoom plays
     L.__spot=c;placed.push({x:c.x,y:c.y,w:lw,h:lh});
     L.classList.toggle('right',c.s);
     L.style.transform=`translate(${Math.round(c.x)}px,${Math.round(c.y)}px)`;
