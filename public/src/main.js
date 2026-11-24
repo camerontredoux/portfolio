@@ -701,10 +701,11 @@ function frame(now){
   const e2=mz.i>=0?ease(mz.z):0,mvA=mz.i>=0?sstep(.15,.45,e2):0;
 
   // planet labels
+  const placed=[];
   labs.forEach((L,i)=>{
     const p=pos[i],foc=i===F;
     let op=(foc?(e<.5?1-2*e:2*e-1):1-e)*(1-e2)*(1-eB);
-    let left=foc?e>.5:p.x<CX;
+    const left=foc?e>.5:p.x<CX;
     L.style.opacity=op;
     L.classList.toggle('hot',hover===i||foc);
     if(NARROW){L.classList.remove('right');L.classList.toggle('wait',i===4&&waiting);
@@ -715,11 +716,16 @@ function frame(now){
       L.style.transform=`translate(${p.x}px,${p.y-p.r-30}px) translate(-50%,-100%)`;return;}
     L.style.textAlign='';
     const gap=(i===2&&!foc?p.r*1.52+4:p.r+8),lw=L.offsetWidth,lh=L.offsetHeight;
-    const covers=s=>{const x0=s?p.x-gap-lw:p.x+gap,y0=p.y-lh/2;   // would the label on this side cover another planet?
-      return pos.some((q,j)=>{if(j===i||j===HIDE_PL||!q)return false;const cx=Math.max(x0,Math.min(q.x,x0+lw)),cy=Math.max(y0,Math.min(q.y,y0+lh));return Math.hypot(q.x-cx,q.y-cy)<(j===2?q.r*1.45:q.r)+6;});};
-    if(!foc&&covers(left)&&!covers(!left))left=!left;   // its usual side is blocked: put it on the other side
-    L.classList.toggle('right',left);
-    L.style.transform=left?`translate(${p.x-gap}px,${p.y}px) translate(-100%,-50%)`:`translate(${p.x+gap}px,${p.y}px) translateY(-50%)`;
+    const d=gap*.72,spot=(s,v)=>({s,v,x:s?p.x-(v?d:gap)-lw:p.x+(v?d:gap),y:v<0?p.y-d-lh:v>0?p.y+d:p.y-lh/2});
+    const spots=[spot(left,0),spot(left,-1),spot(left,1),spot(!left,0),spot(!left,-1),spot(!left,1)];
+    const clear=c=>c.x>4&&c.y>4&&c.x+lw<W-4&&c.y+lh<H-4&&
+      !placed.some(b=>c.x<b.x+b.w&&b.x<c.x+lw&&c.y<b.y+b.h&&b.y<c.y+lh)&&
+      !pos.some((q,j)=>{if(j===i||j===HIDE_PL||!q)return false;const cx=Math.max(c.x,Math.min(q.x,c.x+lw)),cy=Math.max(c.y,Math.min(q.y,c.y+lh));return Math.hypot(q.x-cx,q.y-cy)<(j===2?q.r*1.45:q.r)+6;});
+    const was=L.__spot&&spots.find(c=>c.s===L.__spot.s&&c.v===L.__spot.v);   // keep a clear spot so labels don't flip back and forth
+    const c=foc||clear(spots[0])?spots[0]:(was&&clear(was)?was:spots.find(clear)||spots[0]);
+    L.__spot=c;placed.push({x:c.x,y:c.y,w:lw,h:lh});
+    L.classList.toggle('right',c.s);
+    L.style.transform=`translate(${Math.round(c.x)}px,${Math.round(c.y)}px)`;
   });
 
   // narrow screens: islands listed under the planet instead of pointing at it
