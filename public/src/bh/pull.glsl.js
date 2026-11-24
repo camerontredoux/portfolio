@@ -3,8 +3,32 @@ uniform vec4 pull_q[8],pull_qm[8],pull_sm,pull_smm; uniform vec3 pull_h,pull_spi
 uniform vec2 pull_heat; uniform vec4 pull_pc,pull_pf; uniform sampler2D pull_tx;
 float pull_sky(vec2 q,float cellsPerUnit){
   vec2 g=floor(q*cellsPerUnit); float L=hh(g)>.982?.45+.6*hh(g+7.):0.;
-  float b=dot(q,normalize(vec2(.35,.8)));
-  return L+exp(-b*b/.3)*(.15+.45*fbm(q*2.6))*.55;
+  return L;
+}
+// The bz disc seen from up close: one huge soft ring at the bz tilt. Its near half crosses in front of the hole;
+// its far half is behind the hole, so its light shows as an arc bent up over the top (and a thin one under the bottom).
+float pull_tex(float rho,float ang,float rot){
+  float ph=ang-rot/pow(rho,1.5);
+  return .2+.8*fbm(vec2(cos(ph),sin(ph))*rho*1.6+rho*.7);
+}
+float pull_ring(vec2 q,float r,out bool front){
+  float s=pull_spin.y, tl=.28, rot=pull_t*.25+pull_spin.x*2.2;
+  vec2 t=vec2(cos(tl)*q.x-sin(tl)*q.y,sin(tl)*q.x+cos(tl)*q.y), e=vec2(t.x,t.y/.2);
+  float rd=length(e); rd=1.3+max(rd-1.3,0.)*(1.+.6*s);
+  float I=0.; front=false;
+  if(rd>1.3&&(e.y>0.||r>1.03)){
+    float a=atan(e.y,e.x);
+    I=pull_tex(rd,a,rot)*smoothstep(1.3,1.6,rd)*(.25+.75*exp(-(rd-1.5)/1.1))*(1.-smoothstep(3.5,6.,rd))*(.75+.25*cos(a))*(e.y>0.?1.5:1.15);
+    front=e.y>0.&&r<1.03;
+  }
+  if(r>1.03){
+    vec2 u=t/r; float ang=atan(u.y,u.x), up=max(0.,-u.y), dn=max(0.,u.y);
+    float W=.5*sqrt(up)/(1.+.6*s), k=(r-1.06)/max(W,1e-3);
+    if(k>0.&&k<1.) I=max(I,(.35+.65*pull_tex(1.35+k*3.,ang,rot))*smoothstep(0.,.08,k)*(1.-smoothstep(.3,1.,k))*1.6*sqrt(up));
+    float W2=.2*sqrt(dn)/(1.+.6*s), k2=(r-1.04)/max(W2,1e-3);
+    if(k2>0.&&k2<1.) I=max(I,pull_tex(1.35+k2*3.,ang,rot)*(1.-k2)*.45*sqrt(dn));
+  }
+  return I;
 }
 const vec3 pull_EMBER=vec3(.95,.34,.08),pull_AMBER=vec3(1.,.66,.24),pull_WHITE=vec3(1.,.97,.86);
 vec3 pull_hue(float c){c=clamp(c,0.,1.);return c<.5?mix(pull_EMBER,pull_AMBER,c*2.):mix(pull_AMBER,pull_WHITE,c*2.-1.);}
@@ -27,16 +51,13 @@ vec4 pull(vec2 cell){
   bool shadow=r<Rh;
   float L=0.; vec3 col=pull_hue(pull_heat.x*.3);
   if(!shadow){
-    float Re=1.55, rd=(x-Re)/.07;
-    L=pull_sky(d/r*(x-Re*Re/x)+vec2(pull_t*.004,0.),Rh/w_cell)*mix(.3,1.,smoothstep(1.,1.7,x))
-      +exp(-rd*rd)*(.22+.2*n2(vec2(th*9.,pull_t*.2)));
+    float Re=1.55;
+    L=pull_sky(d/r*(x-Re*Re/x)+vec2(pull_t*.004,0.),Rh/w_cell)*mix(.3,1.,smoothstep(1.,1.7,x));
     col=pull_hue(L*.45+pull_heat.x*.3);
     float rim=1.-smoothstep(0.,2.5*w_cell,r-Rh);
     if(rim>0.){L=max(L,rim*.85*(1.+.25*sin(pull_t*4.)));col=mix(col,pull_hue(.85),rim);}
   }
-  float fb=dot(d/Rh,normalize(vec2(.35,.8)))-.12;
-  float front=exp(-fb*fb/.018)*(1.-smoothstep(1.2,1.9,x))*(.4+.55*fbm(d/Rh*3.+vec2(pull_t*.05,0.)));
-  if(front>L){L=front;col=pull_hue(front*.6+pull_heat.x*.3);}
+  {bool nf; float R=pull_ring(d/Rh,x,nf); if(R>L||(nf&&R>.3)){L=R;col=pull_hue(R*.85+pull_heat.x*.3);}}
   float fx=pull_heat.y;
   if(fx>0.){float fl=fx*1.2*exp(-pow((x-1.1)/(.06+.5*(1.-fx)),2.));if(fl>L){L=fl;col=pull_WHITE;}}
   for(int j=0;j<8;j++){if(float(j)>=pull_n)break;
