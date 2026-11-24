@@ -22,11 +22,20 @@ float bhTex(float rd,float rg,float th,vec3 spin,float t){
   return heat*dop*(.38+1.15*sw)*(1.55+.25*s)*smoothstep(1.25,1.4,rd)*smoothstep(ro,ro-.4,rd);   // a crisper outer edge
 }
 float bhGlow(float I,float r,float rd,float t,float w,bool big,float pr);
-// gro, asp and shrink let Pull grow, flatten and pin the disc; pr scales the photon ring and glow
-float bhDiscX(vec2 q,vec3 spin,float t,float w,bool big,float gro,float asp,float shrink,float pr){
+// Lensing: above the hole the disc's coordinates bend from the flat ellipse toward a circle hugging the shadow, so
+// its far side arches over the top as one continuous surface. t is the untilted point, W the arch's thickness,
+// lens how far the bend goes (0 flat, 1 Pull's full arch).
+vec2 bhBend(vec2 t,float r,float asp,float gro,float W,float lens){
+  float ph=atan(t.y,t.x), up=max(-t.y,0.)/max(r,1e-3);
+  float rL=1.25+max(r-1.06,0.)*1.75/W;                                   // disc radius seen bent round at screen radius r
+  vec2 dF=vec2(t.x,t.y/asp), dL=(1.25+(rL-1.25)*gro)*vec2(cos(ph),sin(ph));
+  return mix(dF,dL,lens*smoothstep(0.,1.,up)*exp(-max(r-1.06,0.)/(1.3*W)));
+}
+// gro, asp and shrink let Pull grow, flatten and pin the disc; lens bends it (bhBend); pr scales the photon ring and glow
+float bhDiscX(vec2 q,vec3 spin,float t,float w,bool big,float gro,float asp,float shrink,float pr,float lens){
   float s=spin.y; q/=1.-shrink*s;                                     // spinning: the whole thing pulls in, the hole shrinks
   float tl=.28, cx=cos(tl)*q.x-sin(tl)*q.y, cy=sin(tl)*q.x+cos(tl)*q.y;   // undo the tilt
-  vec2 d=vec2(cx,cy/asp); float rd=length(d), th=atan(d.y,d.x), r=length(q);
+  float r=length(q); vec2 d=bhBend(vec2(cx,cy),r,asp,gro,1.05/(1.+.5*s),lens); float rd=length(d), th=atan(d.y,d.x);
   rd=1.25+(rd-1.25)/gro;
   float rg=rd;   // on-screen radius: grooves are spaced by this, so they stay distinct while the disk tightens
   rd=1.25+max(rd-1.25,0.)*(1.+.6*s)+min(rd-1.25,0.);                 // and the disk narrows into a tight band
@@ -41,7 +50,8 @@ float bhGlow(float I,float r,float rd,float t,float w,bool big,float pr){
   float sh=1.-w; I=max(I,exp(-pow((rd-1.3-sh*2.1)/(big?.06:.12),2.))*w*.55);   // shockwave when it swallows or lets go
   return I<.08?0.:I;
 }
-float bhDisc(vec2 q,vec3 spin,float t,float w,bool big){return bhDiscX(q,spin,t,w,big,1.,.3,.3,1.);}
+const float BH_LENS=.6;   // how far the bz view bends its disc; Pull starts here and goes to 1
+float bhDisc(vec2 q,vec3 spin,float t,float w,bool big){return bhDiscX(q,spin,t,w,big,1.,.3,.3,1.,BH_LENS);}
 `;
 // GLSL for every program on the page. VS/FS draw the point sprites (stars, orbits, planets, moons, black hole),
 // WVS/WFS render the planet worlds into a low-res buffer, BFS blits that buffer as square pixels.

@@ -3,8 +3,12 @@ uniform vec4 pull_q[8],pull_qm[8],pull_sm,pull_smm; uniform vec3 pull_h,pull_spi
 uniform vec2 pull_heat; uniform vec4 pull_pc,pull_pf; uniform sampler2D pull_tx;
 float pull_sky(vec2 q,float cellsPerUnit){
   vec2 g=floor(q*cellsPerUnit); float L=hh(g)>.982?.45+.6*hh(g+7.):0.;
-  float b=dot(q,vec2(.276,.961));   // the reference background band, turned to lie along the tilted ring (tl=.28)
-  return L+exp(-b*b/.3)*(.15+.45*fbm(q*2.6))*.55;
+  // the reference background band, turned to lie along the tilted ring (tl=.28): thick and streaky at the lower
+  // left, it narrows through the hole and thins out toward the upper right
+  float b=dot(q,vec2(.276,.961)), a=dot(q,vec2(.961,-.276)), k=smoothstep(-7.,7.,a);
+  float w2=mix(2.4,.08,k), dens=mix(1.3,.35,k);
+  float st=fbm(vec2(a*.45,b*3.2)+3.)*.6+fbm(q*2.6)*.4;   // streaks run along the band
+  return L+exp(-b*b/w2)*(.12+.55*st)*.6*dens;
 }
 // The bz disc itself, so entering is one disc transforming: Pull starts with it exactly as bz drew it (bhDiscX's
 // mapping), then stretches it outward and flattens it. Spinning pulls it back in tight.
@@ -15,15 +19,12 @@ float pull_ring(vec2 q,float r,out bool front){
   float m=smoothstep(.3,1.,w_e), s=pull_spin.y;
   float gro=mix(1.,2.6,m)/(1.+.7*s), asp=mix(.3,.2,m)*(1.-.35*s), W=1.05/(1.+.5*s);
   float tl=.28; vec2 t=vec2(cos(tl)*q.x-sin(tl)*q.y,sin(tl)*q.x+cos(tl)*q.y);
-  float ph=atan(t.y,t.x), up=max(-t.y,0.)/max(r,1e-3);
-  float rL=1.25+max(r-1.06,0.)*1.75/W;                                   // disc radius seen bent round at screen radius r
-  vec2 dF=vec2(t.x,t.y/asp), dL=(1.25+(rL-1.25)*gro)*vec2(cos(ph),sin(ph));
-  float Lw=m*smoothstep(0.,1.,up)*exp(-max(r-1.06,0.)/(1.3*W));
-  vec2 d=mix(dF,dL,Lw);
+  float ph=atan(t.y,t.x);
+  vec2 d=bhBend(t,r,asp,gro,W,mix(BH_LENS,1.,m));                       // the bz view's bend, deepening as you zoom in
   float rd=length(d), th=atan(d.y,d.x);
   rd=1.25+(rd-1.25)/gro; float rg=rd;
   rd=1.25+max(rd-1.25,0.)*(1.+.6*s)+min(rd-1.25,0.);
-  float I=t.y<0.&&r<1.03?0.:bhTex(rd,rg,th,pull_spin,pull_t)*(1.+.35*Lw);
+  float I=t.y<0.&&r<1.03?0.:bhTex(rd,rg,th,pull_spin,pull_t);
   front=r<1.03&&I>0.;
   if(t.y>0.&&r>1.03&&m>0.){                                              // the underside, bent round below the shadow
     float rb=1.25+(r-1.1)*1.75/(W*.35);
