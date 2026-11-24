@@ -18,7 +18,6 @@ uniform vec4 u_gal;         // gallery: centre tile index, tile size, gap, centr
 uniform float u_gz, u_wv, u_bsp;   // gallery progress, any-world fade, landed grid spacing
 uniform float u_gslot[8];
 uniform sampler2D u_tex;     // 4×4 atlas of project images
-uniform sampler2D u_tm;      // text mask: dots behind letters go dim
 uniform vec3 u_img;         // current slot, previous slot, swap amount
 uniform float u_rmv;        // moon radius in the moon view
 uniform vec2 u_fl;          // orbit plane squash while you spin the system (x, y)
@@ -364,7 +363,6 @@ void main(){
   vec2 clip=p/u_res*2.-1.; clip.y=-clip.y;
   gl_Position=show?vec4(clip,0,1):vec4(2,2,2,1);
   gl_PointSize=show?max(1.,floor(size*u_dpr+.5)):0.;
-  col*=1.-.94*smoothstep(0.,.75,texture(u_tm,p/u_res).a);   // dots fade by how much text covers them, so moving labels don't pop dots on and off
   v=vec4(col,alpha);
 }`;
 
