@@ -4,10 +4,25 @@ Tap the black hole in orbit view to zoom into it. Tap the hole again to fall int
 
 While Pull opens, the camera pushes into the hole until its radius is `pullR()` in `../main.js`. Pull draws its hole at `ctx.hole`, so the hole you tapped is the hole you arrive at.
 
-Pull owns two files:
+Pull owns three files:
 
-- `pull.js`: the hooks.
+- `pull.js`: the hooks and the game.
 - `pull.glsl.js`: the shader, drawn when `w_mode` is 6. The planet worlds use `w_mode` 1 (surface), 3 (strata) and 5 (crater).
+- `story.js`: every word the game shows. Change the story here and nowhere else.
+
+## Page time, the game
+
+Pull is a small game about Hawking radiation. Archived projects are not in Pull; open them from their moons in the `bz` view.
+
+1. Every few seconds a pair of quanta appears on the photon ring. One falls in. The other drifts outward and escapes after about 5 seconds.
+2. Drag the escaping quantum outward to catch it. It unfolds into a fragment card: a small terminal with fragment k of the message and an input.
+3. Each catch makes the hole smaller (down to 45% of its radius) and hotter, and the next pair comes sooner.
+4. Until half the fragments are caught, the card text and every terminal reply are scrambled. The catch that reaches half is the Page time: the hole flares and all caught fragments decode at once. After that, text arrives decoded.
+5. When all fragments are caught, the card shows the final lines from `story.js` and no more pairs appear.
+
+The collected strip at the bottom has one tile per caught fragment. Tap a tile to open that card again. Escape closes an open card first.
+
+Progress is saved in `localStorage` under `pull.page` as `{"n": <fragments caught>}`. The terminal command `reset` sets it back to 0. `reset` is not listed by `help`.
 
 ## Hooks (`pull.js`)
 
@@ -23,7 +38,6 @@ The default export is an object with these keys:
 
 `ctx` has:
 
-- `projects()`: the archived projects as `{i, t, d, slug, role, tools, desc, links, slots}`. The list can be empty. `links` are `{label, url}`, and `url` can be empty. `slots` are atlas slots for the project's images.
 - `t` (seconds), `W`, `H`, `DPR`, `narrow`, `pointer` (`{x, y, down}` in CSS px), `hole` (`{x, y, R}` on screen), `e` (0 to 1 while the world opens), `leaving`.
 - `spin`: the disc spin of the black hole as `[angle, speed, direction]`. Pass it to `bhDisc` so the disc turns as it does in the `bz` view.
 - `gl`, `u(name)`: the WebGL2 context and a cached uniform location in the world program.
