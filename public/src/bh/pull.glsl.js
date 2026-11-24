@@ -18,7 +18,7 @@ float pull_ring(vec2 q,float r,out bool front){
   float ph=atan(t.y,t.x), up=max(-t.y,0.)/max(r,1e-3);
   float rL=1.25+max(r-1.06,0.)*1.75/W;                                   // disc radius seen bent round at screen radius r
   vec2 dF=vec2(t.x,t.y/asp), dL=(1.25+(rL-1.25)*gro)*vec2(cos(ph),sin(ph));
-  float Lw=m*smoothstep(0.,.7,up)*exp(-max(r-1.06,0.)/(1.3*W));
+  float Lw=m*smoothstep(0.,1.,up)*exp(-max(r-1.06,0.)/(1.3*W));
   vec2 d=mix(dF,dL,Lw);
   float rd=length(d), th=atan(d.y,d.x);
   rd=1.25+(rd-1.25)/gro; float rg=rd;
