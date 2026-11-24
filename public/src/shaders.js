@@ -268,7 +268,7 @@ void main(){
       if(I>0.&&h(vec3(a.xy*53.,floor(u_t*18.)))<w*.3) show=false;               // shimmer
     }
     p=u_bh.xy+q*u_bh.z;
-    if(big){ if(h(vec3(q*31.,5.))>=u_bz.z) show=false; size=max(u_bdot*u_bh.z/u_rt,.5); alpha=1.-u_mv2.x; }
+    if(big){ if(h(vec3(q*31.,5.))>=u_bz.z) show=false; size=max(min(u_bdot*u_bh.z/u_rt,u_bdot*1.6),.5);   /* diving into Pull: the dots spread apart but stay fine instead of turning into blocks */ alpha=1.-u_mv2.x; }
     else { if(h(vec3(q*31.,6.))<u_bz.z) show=false; size=min(u_pdot+(u_bz.y-1.)*u_spp,64.); alpha=max(1.-u_e,u_bz.x); }
     {float c=clamp(I*.72+u_bh.w*.06,0.,1.);col=c<.5?mix(vec3(.95,.34,.08),vec3(1.,.66,.24),c*2.):mix(vec3(1.,.66,.24),vec3(1.,.97,.86),c*2.-1.);}
   } else if(kind==12){                           // asteroid belt between the 4th and 5th orbits
