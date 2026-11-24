@@ -35,13 +35,11 @@ vec2 bhBend(vec2 t,float r,float asp,float gro,float W,float lens){
   return rd*vec2(cos(th),sin(th));
 }
 // gro, asp and shrink let Pull grow, flatten and pin the disc; lens bends it (bhBend); pr scales the photon ring and glow
-// Beside the hole the disc stays dark in a teardrop running out along it, between the arch above and the front band
-// below, so the shadow has no round edge at the sides and reads as stretching into a point (as in Pull).
-// t is the untilted point.
+// Where the photon ring and its glow show: only as an arc over the top of the shadow. Not at the sides, where the
+// dark runs out along the disc (as in Pull), and not underneath, where it showed through the rings. t is the
+// untilted point.
 float bhGap(vec2 t,float r,float asp){
-  float ax=abs(t.x), hw=mix(1.,.3,smoothstep(1.,2.1,ax));              // half-height, tapering to the tip
-  float y=t.y+.12, ty=y<0.?y/(.62*hw):y/(.36*hw);
-  return smoothstep(.8,1.15,length(vec2(ax/2.1,ty)));
+  return smoothstep(.5,.85,-t.y/max(r,1e-3));
 }
 float bhDiscX(vec2 q,vec3 spin,float t,float w,bool big,float gro,float asp,float shrink,float pr,float lens){
   float s=spin.y; q/=1.-shrink*s;                                     // spinning: the whole thing pulls in, the hole shrinks
