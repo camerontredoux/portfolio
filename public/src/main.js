@@ -257,7 +257,7 @@ cv.addEventListener('pointermove',e=>{
     grab.tx=e.clientX;grab.ty=e.clientY;grab.hl=nearestOrbit(e.clientX,e.clientY);m.ts=0;return;}
   const now=performance.now(),dt=Math.max(8,now-drag.t)/1000;drag.t=now;
   const F=zoom.focus;
-  if(bz.target===1&&mz.target===0){const d=-dx/Math.max(20,bhScr.R*1.6);bhSpin+=d;bhSpinV=bhSpinV*.4+d/dt*.6;return;}
+  if(bz.target===1&&mz.target===0){spinHole(dx,dt);return;}
   if(F>=0){if(zoom.target!==1)return;const d=-dx/pos[F].r;PL[F].ph+=d;PL[F].moff+=d;spinV=spinV*.4+d/dt*.6;}
   else{
     const ax=e.clientX-CX,ay=(e.clientY-CY)/(.4*flY),rr=Math.hypot(ax,ay);
@@ -267,6 +267,7 @@ cv.addEventListener('pointermove',e=>{
     sysA+=d;drag.hist.push([performance.now(),sysA]);while(drag.hist.length>12)drag.hist.shift();
     sysV=sysV*.5+d/dt*.5;}
 });
+function spinHole(dx,dt){const d=-dx/Math.max(20,bhScr.R*1.6);bhSpin+=d;bhSpinV=bhSpinV*.4+d/dt*.6;}
 function endDrag(e){if(drag.on&&performance.now()-drag.t>90)bhSpinV*=.3;
   if(!drag.on)return;drag.on=false;
   const nowR=performance.now();
@@ -473,7 +474,7 @@ const bhCtx={gl,el:worldEl,u:n=>n in wul?wul[n]:(wul[n]=gl.getUniformLocation(wp
 function enterPull(){closeCard();closeFacts();wz.k=BH_K;wz.mode='pull';wz.target=1;wMoved=0;
   worldEl.innerHTML=`<div class="wh">${pull.hint}</div>`;pull.enter(bhCtx);}
 function worldDrag(dx,dy,dt){wMoved+=Math.hypot(dx,dy);const t=curW();
-  if(bhWorld()){pull.drag(bhCtx,dx,dy,dt);return;}
+  if(bhWorld()){if(!pull.drag(bhCtx,dx,dy,dt))spinHole(dx,dt);return;}
   if(t==='crater'){crYawT-=dx*.006;crZoom=Math.max(-.6,Math.min(1,crZoom-dy*.004));return;}
   if(t==='gallery'){const d=-dx/(GT_T+GT_G);galX=Math.max(-.4,Math.min(GT.length-.6,galX+d));galVel=galVel*.5+d/dt*.5;galT=galX;}
   if(t==='surface'){if(!drag.axis)drag.axis=Math.abs(dy)>=Math.abs(dx)*.8?'y':'x';
@@ -496,7 +497,7 @@ const SPIN_X=-1,SPIN_Y=1;                              // flip one to reverse si
 function wheelAmount(e){const k=e.deltaMode===1?16:1,dx=e.deltaX*k,dy=e.deltaY*k;return Math.abs(dx)>Math.abs(dy)?SPIN_X*dx:SPIN_Y*dy;}
 // what can spin right now, and how a nudge of d (in radians) moves it; null if nothing should
 function spinTarget(){
-  if(drag.on||wz.k>=0||mz.target===1)return null;
+  if(drag.on||(wz.k>=0&&!bhWorld())||mz.target===1)return null;
   if(bz.target===1)return {scale:1/Math.max(20,bhScr.R*1.6)*.5,max:14,nudge:d=>{bhSpin+=d;bhSpinV=Math.max(-14,Math.min(14,bhSpinV*.85+d*10));}};
   const F=zoom.focus;
   if(F>=0&&zoom.target===1)return {scale:.6/Math.max(60,pos[F].r),nudge:d=>{PL[F].ph+=d;PL[F].moff+=d;spinV=Math.max(-6,Math.min(6,spinV*.85+d*8));}};

@@ -180,10 +180,10 @@ export default {
     if(!grab&&!tried&&!ctx.leaving){tried=true;ghosted=true;
       if(out?.ph==='held'&&lastF&&inside(lastF,x,y))grab={plate:true,x0:x,y0:y,ox:out.ox,oy:out.oy};
       else{const q=hit(ctx,G,x,y,40);if(q)grab={q,r0:r,t0:t,p0:q.p,da0:q.da};}}
-    if(!grab)return;
-    if(grab.plate){if(out?.ph!=='held'){grab=null;return;}out.ox=grab.ox+(x-grab.x0)*.8;out.oy=grab.oy+(y-grab.y0)*.8;return;}
-    const q=grab.q;if(!Q.includes(q)){grab=null;return;}
-    q.p=Math.max(0,grab.p0+(r-grab.r0)/G.D);q.da=grab.da0+wrap(t-grab.t0)*.7;if(q.p>=1)catchQ(ctx,G,q);},
+    if(!grab)return false;
+    if(grab.plate){if(out?.ph!=='held'){grab=null;return true;}out.ox=grab.ox+(x-grab.x0)*.8;out.oy=grab.oy+(y-grab.y0)*.8;return true;}
+    const q=grab.q;if(!Q.includes(q)){grab=null;return true;}
+    q.p=Math.max(0,grab.p0+(r-grab.r0)/G.D);q.da=grab.da0+wrap(t-grab.t0)*.7;if(q.p>=1)catchQ(ctx,G,q);return true;},
   release(ctx){if(grab?.plate&&out&&Math.hypot(out.ox,out.oy)>ctx.hole.R*.4)drop(ctx);
     grab=null;tried=false;},
   tap(ctx,x,y){
