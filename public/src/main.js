@@ -704,7 +704,7 @@ function frame(now){
   labs.forEach((L,i)=>{
     const p=pos[i],foc=i===F;
     let op=(foc?(e<.5?1-2*e:2*e-1):1-e)*(1-e2)*(1-eB);
-    const left=foc?e>.5:p.x<CX;
+    let left=foc?e>.5:p.x<CX;
     L.style.opacity=op;
     L.classList.toggle('hot',hover===i||foc);
     if(NARROW){L.classList.remove('right');L.classList.toggle('wait',i===4&&waiting);
@@ -714,8 +714,11 @@ function frame(now){
     if(foc&&e>.5){L.classList.remove('right');L.style.textAlign='center';
       L.style.transform=`translate(${p.x}px,${p.y-p.r-30}px) translate(-50%,-100%)`;return;}
     L.style.textAlign='';
+    const gap=(i===2&&!foc?p.r*1.52+4:p.r+8),lw=L.offsetWidth,lh=L.offsetHeight;
+    const covers=s=>{const x0=s?p.x-gap-lw:p.x+gap,y0=p.y-lh/2;   // would the label on this side cover another planet?
+      return pos.some((q,j)=>{if(j===i||j===HIDE_PL||!q)return false;const cx=Math.max(x0,Math.min(q.x,x0+lw)),cy=Math.max(y0,Math.min(q.y,y0+lh));return Math.hypot(q.x-cx,q.y-cy)<(j===2?q.r*1.45:q.r)+6;});};
+    if(!foc&&covers(left)&&!covers(!left))left=!left;   // its usual side is blocked: put it on the other side
     L.classList.toggle('right',left);
-    const gap=(i===2&&!foc?p.r*1.52+4:p.r+8);
     L.style.transform=left?`translate(${p.x-gap}px,${p.y}px) translate(-100%,-50%)`:`translate(${p.x+gap}px,${p.y}px) translateY(-50%)`;
   });
 
