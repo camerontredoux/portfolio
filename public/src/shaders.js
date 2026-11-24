@@ -1,5 +1,4 @@
 import PULL from './bh/pull.glsl.js';
-import PLUNGE from './bh/plunge.glsl.js';
 // GLSL for every program on the page. VS/FS draw the point sprites (stars, orbits, planets, moons, black hole),
 // WVS/WFS render the planet worlds into a low-res buffer, BFS blits that buffer as square pixels.
 
@@ -600,8 +599,8 @@ vec4 crater(vec2 cell){
    float g=exp(-pow(length(uv-c0)/.09,2.));L+=fl*g*.8;col=mix(col,vec3(1.,.82,.6),fl*g);}   // impact flash, local
   return vec4(col*mix(.76,1.05,clamp(L,0.,1.)),L>b8(cell)*.95+.04?1.:.5);
 }
-${PULL}${PLUNGE}
-void main(){vec2 c=floor(gl_FragCoord.xy);o=w_mode<2.?surface(c):w_mode<4.?strata(c):w_mode<6.?crater(c):w_mode<7.?pull(c):plunge(c);
+${PULL}
+void main(){vec2 c=floor(gl_FragCoord.xy);o=w_mode<2.?surface(c):w_mode<4.?strata(c):w_mode<6.?crater(c):pull(c);
   float m=texture(w_tm,vec2((c.x+.5)*w_cell,w_scr.y-(c.y+.5)*w_cell)/(w_res*w_cell)).a;o.rgb*=mix(1.,.06,smoothstep(.03,.3,m));}`;   // only the dots under letters go dim, so text reads over any world
 
 export const BFS = `#version 300 es
