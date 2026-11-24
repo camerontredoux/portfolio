@@ -756,7 +756,7 @@ function frame(now){
   {const Rh=BH0.R;
    bhScr={x:CX+(BH0.x-fx)*k,y:CY+(BH0.y-fy)*k,R:Rh*k};
    {const bl=document.getElementById('bloom'),w=bhScr.R*9,h=bhScr.R*4.4,pulse=Math.pow(Math.max(0,1-(performance.now()/1000-bhPulse)/1.6),1.5);
-    const sc=(1+.15*pulse)*(1-.3*bhS);bl.style.width=w*sc+'px';bl.style.height=h*sc+'px';
+    const sc=(1+.15*pulse)*(1-.3*bhS);bl.style.width=w*sc+'px';bl.style.height=h*sc+'px';bl.style.setProperty('--hr',(bhScr.R*1.03*(1-.3*bhS)).toFixed(1)+'px');
     bl.style.opacity=Math.min(1,Math.max(1-Math.max(e,eB),eB)*(1-e2)*(1-ew)*(.42+.08*Math.sin(performance.now()/700)+.3*pulse)).toFixed(3);
     bl.style.transform=`translate(${bhScr.x-w*sc/2}px,${bhScr.y-h*sc/2}px) rotate(-16deg)`;}
    const bl=document.getElementById('bhl');bl.style.opacity=(1-e)*(1-eB)*(F<0?1:0);bl.classList.add('right');
