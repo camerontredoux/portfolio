@@ -457,6 +457,7 @@ function drawGlyphMask(){const els=[...stEls.sl,...stEls.fc].filter(e=>e.isConne
   gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);
   gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);gl.uniform1i(WU.w_tm,3);gl.activeTexture(gl.TEXTURE0);}
 function exitWorld(){if(wz.k===BH_K&&wz.target===1){BHW[wz.mode].leave?.(bhCtx);bz.target=0;}wz.target=0;if(memS){memS=null;memv.classList.remove('on','dim','txt');}}
+function worldBack(){if(!bhWorld()?.back?.(bhCtx))exitWorld();}
 function killWorld(){if(wz.k===BH_K&&wz.target===1)BHW[wz.mode].leave?.(bhCtx);wz.mode=null;crPend=null;wz.target=0;wz.z=0;wz.k=-1;ew=0;worldEl.innerHTML='';document.body.classList.remove('inworld');}
 // open a project from inside a world: leave the world, then fly to its moon (or the archive, if it was retired)
 function openFromWorld(i){const mo=MOONS[i];exitWorld();
@@ -470,7 +471,7 @@ const bhCtx={gl,el:worldEl,u:n=>n in wul?wul[n]:(wul[n]=gl.getUniformLocation(wp
   get W(){return W;},get H(){return H;},get DPR(){return DPR;},get narrow(){return NARROW;},
   get t(){return performance.now()/1000;},get e(){return ew;},get leaving(){return wz.target!==1;},
   get hole(){return bhScr;},get pointer(){return {x:m.tx,y:m.ty,down:drag.on};},get atlas(){return ATL;},
-  projects:()=>swallowed.map(i=>({i,t:ISL[i].t,d:ISL[i].d,slug:ISL[i].slug,slots:[...Array(nImg(i))].map((_,g)=>slotOf(i,g))})),
+  projects:()=>swallowed.map(i=>({i,t:ISL[i].t,d:ISL[i].d,slug:ISL[i].slug,role:ISL[i].role,tools:ISL[i].tools,desc:ISL[i].desc,links:ISL[i].links,slots:[...Array(nImg(i))].map((_,g)=>slotOf(i,g))})),
   open(i){if(wz.k!==BH_K||wz.target!==1)return;if(MOONS[i].st!=='gone'){openFromWorld(i);return;}
     BHW[wz.mode].leave?.(bhCtx);wz.target=0;
     setTimeout(()=>{if(wz.k>=0&&wz.target===1||bz.target!==1||MOONS[i].st!=='gone')return;
@@ -628,14 +629,14 @@ function pick(x,y){for(let k=0;k<PL.length;k++){if(k===HIDE_PL)continue;const p=
 function pickIsland(x,y){const i=pickMoon(x,y);return i>=0&&moonPos[i].foc?i:-1;}
 document.querySelectorAll('#nav button').forEach(b=>b.addEventListener('click',()=>{
   b.dataset.k==='here'?zoomOut():zoomTo(+b.dataset.k);}));
-back.addEventListener('click',()=>wz.k>=0&&wz.target===1?exitWorld():mz.target===1?moonBack():bz.target===1?(bz.target=0):zoomOut());
+back.addEventListener('click',()=>wz.k>=0&&wz.target===1?worldBack():mz.target===1?moonBack():bz.target===1?(bz.target=0):zoomOut());
 document.getElementById('rest').addEventListener('click',()=>{const i=mz.i;if(i<0||MOONS[i].st!=='gone')return;
   const t=performance.now()/1000;mpulse[i]=t;ring2.i=i;ring2.t0=t;flash(mtitle);
   setTimeout(()=>{mz.target=0;},380);                                    // 1. pulse, then pull back to the black hole
   setTimeout(()=>{restoreFromHole(i);bz.target=0;},380+1050);            // 2. it breaks free and flies home as the camera pulls out
 });
 addEventListener('keydown',e=>{if(wz.k>=0&&wz.target===1){const t=curW();wMoved+=120;
-    if(e.key==='Escape')exitWorld();else bhWorld()?.key?.(bhCtx,e);
+    if(e.key==='Escape')worldBack();else bhWorld()?.key?.(bhCtx,e);
     if(t==='gallery'&&(e.key==='ArrowRight'||e.key==='ArrowLeft'))galT=Math.max(0,Math.min(GT.length-1,Math.round(galT)+(e.key==='ArrowRight'?1:-1)));
     if(t==='gallery'&&e.key==='Enter'){const ti=Math.round(galX);if(GT[ti])openFromWorld(GT[ti].i);}
     if(t==='strata'&&(e.key==='ArrowDown'||e.key==='ArrowUp'))depthV+=(e.key==='ArrowDown'?1:-1)*900;

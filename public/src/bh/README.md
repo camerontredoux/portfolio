@@ -1,6 +1,6 @@
 # Black hole worlds
 
-The Void label in orbit view has two buttons. Each button opens one world: Pull, Plunge. Escape or the back button leaves the world and returns to orbit.
+The Void label in orbit view has two buttons. Each button opens one world: Pull, Plunge. Escape or the back button leaves the world and returns to orbit, unless the world's `back` hook handles it.
 
 ## Files a world owns
 
@@ -23,10 +23,11 @@ The default export is an object. Every key is optional.
 - `frame(ctx, dt)`: every frame while the world is on screen, with the world program bound. Set your uniforms here.
 - `drag(ctx, dx, dy, dt)`, `release(ctx)`: a pointer drag in CSS px, and its end.
 - `tap(ctx, x, y)`, `wheel(ctx, e)`, `key(ctx, e)`: Escape never reaches `key`.
+- `back(ctx)`: Escape or the back button was pressed. Return `true` if the world handled it, for example to put something away. The world then stays open. Otherwise the world closes.
 
 `ctx` has:
 
-- `projects()`: the archived projects as `{i, t, d, slug, slots}`. The list can be empty. `slots` are atlas slots for the project's images.
+- `projects()`: the archived projects as `{i, t, d, slug, role, tools, desc, links, slots}`. The list can be empty. `links` are `{label, url}`, and `url` can be empty. `slots` are atlas slots for the project's images.
 - `open(i)`: leave the world and open project `i` in the black hole.
 - `t` (seconds), `W`, `H`, `DPR`, `narrow`, `pointer` (`{x, y, down}` in CSS px), `hole` (`{x, y, R}` on screen), `e` (0 to 1 while the world opens), `leaving`.
 - `gl`, `u(name)`: the WebGL2 context and a cached uniform location in the world program.
