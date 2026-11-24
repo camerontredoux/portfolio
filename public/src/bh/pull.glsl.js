@@ -5,30 +5,36 @@ float pull_sky(vec2 q,float cellsPerUnit){
   vec2 g=floor(q*cellsPerUnit); float L=hh(g)>.982?.45+.6*hh(g+7.):0.;
   return L;
 }
-// The bz disc seen from up close: one huge soft ring at the bz tilt. Its near half crosses in front of the hole;
-// its far half is behind the hole, so its light shows as an arc bent up over the top (and a thin one under the bottom).
-float pull_tex(float rho,float ang,float rot){
-  float ph=ang-rot/pow(rho,1.5);
-  return .2+.8*fbm(vec2(cos(ph),sin(ph))*rho*1.6+rho*.7);
+// The bz disc seen from up close, with the bz disc's own texture: grooves, tapered streaks, a white-hot inner edge,
+// the side turning toward you brighter. Its near half crosses in front of the hole; its far half is bent up over the top.
+float pull_lum(float rho,float ang,float rot){
+  float ro=3.3; if(rho<1.3||rho>ro) return 0.;
+  // Pull draws on a coarse on/off grid, so soft gradients turn to speckle: the structure has to be hard lanes with gaps
+  float ph=ang-rot/pow(rho,1.5), heat=1.-smoothstep(1.3,ro,rho)*.65, dop=.68+.32*cos(ang);
+  float k=floor((rho-1.3)/.42+.5), lane=smoothstep(.45,.85,.5+.5*cos(6.2832*(rho-1.3)/.42));
+  float arcs=1.+step(.5,fract(k*.618)), a=fract(ph*arcs/6.2832+fract(k*.7548)); if(pull_spin.z<0.)a=1.-a;
+  float sw=nz(vec3(cos(ph)*rho*1.8,sin(ph)*rho*1.8,rho*2.5));
+  float I=heat*dop*(1.7*lane*(.3+.7*pow(a,1.4))*(.7+.45*sw)+.24*smoothstep(.4,.8,sw));
+  I=max(I,1.4*dop*exp(-pow((rho-1.36)/.05,2.)));
+  return I*smoothstep(ro,ro-.12,rho);
 }
 float pull_ring(vec2 q,float r,out bool front){
-  float s=pull_spin.y, tl=.28, rot=pull_t*.25+pull_spin.x*2.2;
-  vec2 t=vec2(cos(tl)*q.x-sin(tl)*q.y,sin(tl)*q.x+cos(tl)*q.y), e=vec2(t.x,t.y/.2);
+  float s=pull_spin.y, tl=.28, rot=pull_t*.35+pull_spin.x*2.2;
+  vec2 t=vec2(cos(tl)*q.x-sin(tl)*q.y,sin(tl)*q.x+cos(tl)*q.y), e=vec2(t.x,t.y/.3);
   float rd=length(e); rd=1.3+max(rd-1.3,0.)*(1.+.6*s);
   float I=0.; front=false;
   if(rd>1.3&&(e.y>0.||r>1.03)){
-    float a=atan(e.y,e.x);
-    I=pull_tex(rd,a,rot)*smoothstep(1.3,1.6,rd)*(.25+.75*exp(-(rd-1.5)/1.1))*(1.-smoothstep(3.5,6.,rd))*(.75+.25*cos(a))*(e.y>0.?1.5:1.15);
-    front=e.y>0.&&r<1.03;
+    I=pull_lum(rd,atan(e.y,e.x),rot);
+    front=e.y>0.&&r<1.03&&I>.1;
   }
   if(r>1.03){
-    vec2 u=t/r; float ang=atan(u.y,u.x), up=max(0.,-u.y), dn=max(0.,u.y);
-    float W=.5*sqrt(up)/(1.+.6*s), k=(r-1.06)/max(W,1e-3);
-    if(k>0.&&k<1.) I=max(I,(.35+.65*pull_tex(1.35+k*3.,ang,rot))*smoothstep(0.,.08,k)*(1.-smoothstep(.3,1.,k))*1.6*sqrt(up));
-    float W2=.2*sqrt(dn)/(1.+.6*s), k2=(r-1.04)/max(W2,1e-3);
-    if(k2>0.&&k2<1.) I=max(I,pull_tex(1.35+k2*3.,ang,rot)*(1.-k2)*.45*sqrt(dn));
+    vec2 u=t/r; float ang=atan(u.y,u.x), up=max(0.,-u.y);
+    float C=mix(1.,2.,sqrt(up))*(1.+.6*s), rho=1.3+(r-1.03)*C;
+    I=max(I,pull_lum(rho,ang,rot)*smoothstep(.3,-.05,u.y)*(1.-smoothstep(1.7,2.5,rho)*up)*(1.+.25*up));
+    float dn=max(0.,u.y), k2=(r-1.03)/max(.16*sqrt(dn),1e-3);
+    if(k2>0.&&k2<1.) I=max(I,pull_lum(1.3+k2*1.2,ang,rot)*(1.-k2)*.5*sqrt(dn));
   }
-  return I;
+  return I<.1?0.:I;
 }
 const vec3 pull_EMBER=vec3(.95,.34,.08),pull_AMBER=vec3(1.,.66,.24),pull_WHITE=vec3(1.,.97,.86);
 vec3 pull_hue(float c){c=clamp(c,0.,1.);return c<.5?mix(pull_EMBER,pull_AMBER,c*2.):mix(pull_AMBER,pull_WHITE,c*2.-1.);}
@@ -57,7 +63,7 @@ vec4 pull(vec2 cell){
     float rim=1.-smoothstep(0.,2.5*w_cell,r-Rh);
     if(rim>0.){L=max(L,rim*.85*(1.+.25*sin(pull_t*4.)));col=mix(col,pull_hue(.85),rim);}
   }
-  {bool nf; float R=pull_ring(d/Rh,x,nf); if(R>L||(nf&&R>.3)){L=R;col=pull_hue(R*.85+pull_heat.x*.3);}}
+  {bool nf; float R=pull_ring(d/Rh,x,nf); if(R>L||nf){L=R;col=pull_hue(R*.62+pull_heat.x*.3);}}
   float fx=pull_heat.y;
   if(fx>0.){float fl=fx*1.2*exp(-pow((x-1.1)/(.06+.5*(1.-fx)),2.));if(fl>L){L=fl;col=pull_WHITE;}}
   for(int j=0;j<8;j++){if(float(j)>=pull_n)break;
