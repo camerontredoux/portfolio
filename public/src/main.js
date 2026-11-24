@@ -472,7 +472,6 @@ const bhCtx={gl,el:worldEl,u:n=>n in wul?wul[n]:(wul[n]=gl.getUniformLocation(wp
   get t(){return performance.now()/1000;},get e(){return ew;},get leaving(){return wz.target!==1;},
   get hole(){return {x:bhScr.x,y:bhScr.y,R:bhScr.R};},get spin(){return [bhSpin,bhS,bhSpinV<-.3?-1:1];},get pointer(){return {x:m.tx,y:m.ty,down:drag.on};}};
 function enterPull(){closeCard();closeFacts();wz.k=BH_K;wz.mode='pull';wz.target=1;wMoved=0;
-  bhSpinV=(bhSpinV<0?-1:1)*Math.max(Math.abs(bhSpinV),9);   // the disc whips up as you fall in
   worldEl.innerHTML=`<div class="wh">${pull.hint}</div>`;pull.enter(bhCtx);}
 function worldDrag(dx,dy,dt){wMoved+=Math.hypot(dx,dy);const t=curW();
   if(bhWorld()){if(!pull.drag(bhCtx,dx,dy,dt))spinHole(dx,dt);return;}

@@ -6,22 +6,13 @@ float pull_sky(vec2 q,float cellsPerUnit){
   float b=dot(q,vec2(.276,.961));   // the reference background band, turned to lie along the tilted ring (tl=.28)
   return L+exp(-b*b/.3)*(.15+.45*fbm(q*2.6))*.55;
 }
-// The bz disc seen from up close: one huge soft ring at the bz tilt. Its near half crosses in front of the hole;
-// its far half is behind the hole; its light comes round as the round ring the old Pull already drew.
-float pull_tex(float rho,float ang,float rot){
-  float ph=ang-rot/pow(rho,1.5);
-  return .2+.8*fbm(vec2(cos(ph),sin(ph))*rho*1.6+rho*.7);
-}
+// The bz disc itself, so entering is one disc transforming: Pull starts with it exactly as bz drew it, then stretches
+// it outward and flattens it. Spinning pulls it back in tight.
 float pull_ring(vec2 q,float r,out bool front){
-  float s=pull_spin.y, tl=.28, rot=pull_t*.25+pull_spin.x*2.2;
-  vec2 t=vec2(cos(tl)*q.x-sin(tl)*q.y,sin(tl)*q.x+cos(tl)*q.y), e=vec2(t.x,t.y/.2);
-  float rd=length(e); rd=1.3+max(rd-1.3,0.)*(1.+.6*s)*mix(2.2,1.,smoothstep(.1,1.,w_e));
-  float I=0.; front=false;
-  if(rd>1.3&&(e.y>0.||r>1.03)){
-    float a=atan(e.y,e.x);
-    I=pull_tex(rd,a,rot)*smoothstep(1.3,1.6,rd)*(.25+.75*exp(-(rd-1.5)/1.1))*(1.-smoothstep(3.5,6.,rd))*(.75+.25*cos(a))*(e.y>0.?1.5:1.15);
-    front=e.y>0.&&r<1.03;
-  }
+  float m=smoothstep(.3,1.,w_e), s=pull_spin.y;
+  float gro=mix(1.,2.6,m)/(1.+.7*s), asp=mix(.3,.2,m)*(1.-.35*s);
+  float I=bhDiscX(q,pull_spin,pull_t,0.,true,gro,asp,0.);
+  front=r<1.03&&I>0.;
   return I;
 }
 const vec3 pull_EMBER=vec3(.95,.34,.08),pull_AMBER=vec3(1.,.66,.24),pull_WHITE=vec3(1.,.97,.86);
@@ -40,7 +31,7 @@ vec4 pull(vec2 cell){
   vec2 s=vec2((cell.x+.5)*w_cell,w_scr.y-(cell.y+.5)*w_cell);
   // Pull sits on the bz hole while the camera grows it, and takes the screen over cell by cell, a little sooner near the hole
   vec2 d=s-pull_h.xy; float r=length(d), Rh=pull_h.z, x=r/Rh, th=atan(d.y,d.x);
-  if(hh(cell*.731+2.)*.75+.25*clamp((x-1.)/5.,0.,1.)>=smoothstep(.1,.85,w_e)) return vec4(0);
+  if(hh(cell*.731+2.)*.75+.25*clamp((x-1.)/5.,0.,1.)>=smoothstep(.05,.4,w_e)) return vec4(0);
   bool late=hh(cell*.29+9.)<smoothstep(.8,1.,w_e);
   vec4 P=pull_plate(s,cell);
   bool shadow=r<Rh;
@@ -49,11 +40,12 @@ vec4 pull(vec2 cell){
     float Re=1.55;
     L=pull_sky(d/r*(x-Re*Re/x)+vec2(pull_t*.004,0.),Rh/w_cell)*mix(.3,1.,smoothstep(1.,1.7,x));
     float rd=(x-Re)/.07; L+=exp(-rd*rd)*(.22+.2*n2(vec2(th*9.,pull_t*.2)));
+    L*=smoothstep(.35,1.,w_e);
     col=pull_hue(L*.45+pull_heat.x*.3)*.62;   // the reference reads dim red-brown (~#6E3620), not bright orange
     float rim=1.-smoothstep(0.,2.5*w_cell,r-Rh);
     if(rim>0.){L=max(L,rim*.85*(1.+.25*sin(pull_t*4.)));col=mix(col,pull_hue(.85),rim);}
   }
-  {bool nf; float R=pull_ring(d/Rh,x,nf); if(R>L||(nf&&R>.3)){L=R;col=pull_hue(R*.45+pull_heat.x*.3)*.62;}}
+  {bool nf; float R=pull_ring(d/Rh,x,nf); if(R>L||nf){L=R;col=pull_hue(R*.72+pull_heat.x*.3);}}
   float fx=pull_heat.y;
   if(fx>0.){float fl=fx*1.2*exp(-pow((x-1.1)/(.06+.5*(1.-fx)),2.));if(fl>L){L=fl;col=pull_WHITE;}}
   for(int j=0;j<8;j++){if(float(j)>=pull_n||!late)break;

@@ -5,10 +5,11 @@ float nz(vec3 x){vec3 i=floor(x),f=fract(x);f=f*f*(3.-2.*f);
   return mix(mix(mix(h(i),h(i+vec3(1,0,0)),f.x),mix(h(i+vec3(0,1,0)),h(i+vec3(1,1,0)),f.x),f.y),
              mix(mix(h(i+vec3(0,0,1)),h(i+vec3(1,0,1)),f.x),mix(h(i+vec3(0,1,1)),h(i+vec3(1,1,1)),f.x),f.y),f.z);}
 // black hole, seen from slightly above: a tilted, swirling accretion disk; its far half hides behind the dark horizon, its near half crosses in front
-float bhDisc(vec2 q,vec3 spin,float t,float w,bool big){
-  float s=spin.y; q/=1.-.3*s;                                         // spinning: the whole thing pulls in, the hole shrinks
+float bhDiscX(vec2 q,vec3 spin,float t,float w,bool big,float gro,float asp,float shrink){
+  float s=spin.y; q/=1.-shrink*s;                                     // spinning: the whole thing pulls in, the hole shrinks
   float tl=.28, cx=cos(tl)*q.x-sin(tl)*q.y, cy=sin(tl)*q.x+cos(tl)*q.y;   // undo the tilt
-  vec2 d=vec2(cx,cy/.3); float rd=length(d), th=atan(d.y,d.x), r=length(q);
+  vec2 d=vec2(cx,cy/asp); float rd=length(d), th=atan(d.y,d.x), r=length(q);
+  rd=1.25+(rd-1.25)/gro;   // Pull stretches the disc outward from the hole; the hole itself stays put
   float rg=rd;   // on-screen radius: grooves are spaced by this, so they stay distinct while the disk tightens
   rd=1.25+max(rd-1.25,0.)*(1.+.6*s)+min(rd-1.25,0.);                 // and the disk narrows into a tight band
   float I=0.;
@@ -35,6 +36,7 @@ float bhDisc(vec2 q,vec3 spin,float t,float w,bool big){
   float sh=1.-w; I=max(I,exp(-pow((rd-1.3-sh*2.1)/(big?.06:.12),2.))*w*.55);   // shockwave when it swallows or lets go        // photon ring hugging the horizon
   return I<.08?0.:I;
 }
+float bhDisc(vec2 q,vec3 spin,float t,float w,bool big){return bhDiscX(q,spin,t,w,big,1.,.3,.3);}
 `;
 // GLSL for every program on the page. VS/FS draw the point sprites (stars, orbits, planets, moons, black hole),
 // WVS/WFS render the planet worlds into a low-res buffer, BFS blits that buffer as square pixels.
