@@ -31,7 +31,7 @@ float pull_ring(vec2 q,float r,out bool front){
     float B=bhTex(rb,rb,-ph,pull_spin,pull_t)*smoothstep(.25,.8,t.y/r)*exp(-pow(max(r-1.1,0.)/(.28*W),2.))*.6;
     I=max(I,B*m);
   }
-  return bhGlow(I,r,rd,pull_t,0.,true,1.-m);
+  return max(I<.08?0.:I,bhGlow(0.,r,rd,pull_t,0.,true,1.-m)*bhGap(t,r,asp));   // same ring as the bz view as it hands over
 }
 const vec3 pull_EMBER=vec3(.95,.34,.08),pull_AMBER=vec3(1.,.66,.24),pull_WHITE=vec3(1.,.97,.86);
 vec3 pull_hue(float c){c=clamp(c,0.,1.);return c<.5?mix(pull_EMBER,pull_AMBER,c*2.):mix(pull_AMBER,pull_WHITE,c*2.-1.);}

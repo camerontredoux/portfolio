@@ -28,10 +28,21 @@ float bhGlow(float I,float r,float rd,float t,float w,bool big,float pr);
 vec2 bhBend(vec2 t,float r,float asp,float gro,float W,float lens){
   float ph=atan(t.y,t.x), up=max(-t.y,0.)/max(r,1e-3);
   float rL=1.25+max(r-1.06,0.)*1.75/W;                                   // disc radius seen bent round at screen radius r
-  vec2 dF=vec2(t.x,t.y/asp), dL=(1.25+(rL-1.25)*gro)*vec2(cos(ph),sin(ph));
-  return mix(dF,dL,lens*smoothstep(0.,1.,up)*exp(-max(r-1.06,0.)/(1.3*W)));
+  vec2 dF=vec2(t.x,t.y/asp); float rF=length(dF), w=lens*smoothstep(0.,1.,up)*exp(-max(r-1.06,0.)/(1.3*W));
+  // blend radius and angle separately, never the vectors, which cancel at the sides and fold the grooves into
+  // loops; the bent radius is capped at the flat one, so radius only grows outward and the disc can't fold back
+  float rd=mix(rF,min(1.25+(rL-1.25)*gro,rF),w), th=mix(atan(dF.y,dF.x),ph,w);
+  return rd*vec2(cos(th),sin(th));
 }
 // gro, asp and shrink let Pull grow, flatten and pin the disc; lens bends it (bhBend); pr scales the photon ring and glow
+// Beside the hole the disc stays dark in a teardrop running out along it, between the arch above and the front band
+// below, so the shadow has no round edge at the sides and reads as stretching into a point (as in Pull).
+// t is the untilted point.
+float bhGap(vec2 t,float r,float asp){
+  float ax=abs(t.x), hw=mix(1.,.3,smoothstep(1.,2.1,ax));              // half-height, tapering to the tip
+  float y=t.y+.12, ty=y<0.?y/(.62*hw):y/(.36*hw);
+  return smoothstep(.8,1.15,length(vec2(ax/2.1,ty)));
+}
 float bhDiscX(vec2 q,vec3 spin,float t,float w,bool big,float gro,float asp,float shrink,float pr,float lens){
   float s=spin.y; q/=1.-shrink*s;                                     // spinning: the whole thing pulls in, the hole shrinks
   float tl=.28, cx=cos(tl)*q.x-sin(tl)*q.y, cy=sin(tl)*q.x+cos(tl)*q.y;   // undo the tilt
@@ -40,7 +51,8 @@ float bhDiscX(vec2 q,vec3 spin,float t,float w,bool big,float gro,float asp,floa
   float rg=rd;   // on-screen radius: grooves are spaced by this, so they stay distinct while the disk tightens
   rd=1.25+max(rd-1.25,0.)*(1.+.6*s)+min(rd-1.25,0.);                 // and the disk narrows into a tight band
   float I=d.y<0.&&r<1.03?0.:bhTex(rd,rg,th,spin,t);                   // the far half hides behind the horizon
-  return bhGlow(I,r,rd,t,w,big,pr);
+  float G=bhGlow(0.,r,rd,t,w,big,pr)*bhGap(vec2(cx,cy),r,asp);        // the photon ring stops short of the sides, so it no longer outlines the whole shadow
+  return max(I<.08?0.:I,G);
 }
 // photon ring, glow and shockwave over the disc's light I; pr scales the ring and glow, which Pull draws its own way
 float bhGlow(float I,float r,float rd,float t,float w,bool big,float pr){
