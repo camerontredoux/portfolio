@@ -299,7 +299,8 @@ function openFacts(k){
   factsK=k;factsT0=performance.now();const f=FACTS[k],pl=PL[k],n=MOONS.filter(m=>m.p===k&&m.st==='moon').length;
   const yr=Math.round(2*Math.PI/pl.w);
   const rows=[['class',f.cls],['mass',f.mass],['day',f.day],['year',yr>=60?Math.floor(yr/60)+' min '+(yr%60)+' s':yr+' s'],['moons',n?n+' · one per '+(PLN[k].noun||'thing')+(k===3?' · incl. Lumi':''):'none'],['orbit',ORD[pl.o]],['air',f.air],['surface',f.temp],['carbon life',f.life]];
-  if(NARROW)rows.splice(rows.findIndex(r=>r[0]==='moons')+1,0,...ISL.filter((s,i)=>s.p===k&&MOONS[i].st==='moon').map(s=>[null,s.t+' · '+s.d]));   // phones: the moon list lives in the field notes
+  if(NARROW&&n){const mi=rows.findIndex(r=>r[0]==='moons'),ms=ISL.filter((s,i)=>s.p===k&&MOONS[i].st==='moon').map(s=>s.t+' · '+s.d);   // phones: the moons row lists the moons instead of counting them
+    rows.splice(mi,1,['moons',ms[0]],...ms.slice(1).map(v=>[null,v]));}
   factsEl.innerHTML=`<div class="h">${APPN[k]}<sup>${SUP[k]}</sup> — field notes</div>`+rows.map(()=>'<div><span class="k"></span><span class="v"></span></div>').join('')+'<div class="q"></div>';
   factsRows=rows.map(([k2,v],i)=>{const d=factsEl.children[i+1];return [d.firstChild,k2===null?' '.repeat(14):(k2+' ').padEnd(13,'·')+' ',d.lastChild,v];});
   factsRows.push([factsEl.lastChild,'“'+f.q+'”',null,'']);
