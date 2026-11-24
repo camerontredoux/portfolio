@@ -58,8 +58,6 @@ vec4 pull(vec2 cell){
     L=pull_sky(d/r*(x-Re*Re/x)+vec2(pull_t*.004,0.),Rh/w_cell)*mix(.3,1.,smoothstep(1.,1.7,x));
     L*=smoothstep(.35,1.,w_e)*mix(.25,1.,smoothstep(1.8,3.5,x));
     col=pull_hue(L*.45+pull_heat.x*.3)*.62;   // the reference reads dim red-brown (~#6E3620), not bright orange
-    float rim=1.-smoothstep(0.,1.2*w_cell,r-Rh);
-    if(rim>0.){L=max(L,rim*.7*(1.+.2*sin(pull_t*4.)));col=mix(col,pull_hue(.5),rim);}
   }
   {bool nf; float R=pull_ring(d/Rh,x,nf); if(R>L||nf){L=R;col=pull_hue(R*.55+pull_heat.x*.3);}}
   float fx=pull_heat.y;
