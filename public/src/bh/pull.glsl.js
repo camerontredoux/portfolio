@@ -3,7 +3,7 @@ uniform vec4 pull_q[8],pull_qm[8],pull_sm,pull_smm; uniform vec3 pull_h,pull_spi
 uniform vec2 pull_heat; uniform vec4 pull_pc,pull_pf; uniform sampler2D pull_tx;
 float pull_sky(vec2 q,float cellsPerUnit){
   vec2 g=floor(q*cellsPerUnit); float L=hh(g)>.982?.45+.6*hh(g+7.):0.;
-  float b=dot(q,normalize(vec2(-.35,.8)));
+  float b=dot(q,normalize(vec2(.35,.8)));
   return L+exp(-b*b/.3)*(.15+.45*fbm(q*2.6))*.55;
 }
 const vec3 pull_EMBER=vec3(.95,.34,.08),pull_AMBER=vec3(1.,.66,.24),pull_WHITE=vec3(1.,.97,.86);
@@ -24,14 +24,15 @@ vec4 pull(vec2 cell){
   if(rv>rev) return vec4(0);
   vec2 d=s-pull_h.xy; float r=length(d), Rh=pull_h.z, x=r/Rh, th=atan(d.y,d.x);
   vec4 P=pull_plate(s,cell);
-  float L=bhDisc(d/Rh,pull_spin,w_t,0.,true);
-  bool shadow=x<1.03&&L<=0.;
-  vec3 col=pull_hue(L*.72+pull_heat.x*.55);
+  bool shadow=r<Rh;
+  float L=0.; vec3 col=pull_hue(pull_heat.x*.3);
   if(!shadow){
-    float Re=1.55, er=(x-Re)/.07;
-    float E=pull_sky(d/r*(x-Re*Re/x)+vec2(pull_t*.004,0.),Rh/w_cell)*mix(.3,1.,smoothstep(1.,1.7,x))
-      +exp(-er*er)*(.22+.2*n2(vec2(th*9.,pull_t*.2)));
-    if(E>L){L=E;col=pull_hue(E*.45+pull_heat.x*.3);}
+    float Re=1.55, rd=(x-Re)/.07;
+    L=pull_sky(d/r*(x-Re*Re/x)+vec2(pull_t*.004,0.),Rh/w_cell)*mix(.3,1.,smoothstep(1.,1.7,x))
+      +exp(-rd*rd)*(.22+.2*n2(vec2(th*9.,pull_t*.2)));
+    col=pull_hue(L*.45+pull_heat.x*.3);
+    float rim=1.-smoothstep(0.,2.5*w_cell,r-Rh);
+    if(rim>0.){L=max(L,rim*.85*(1.+.25*sin(pull_t*4.)));col=mix(col,pull_hue(.85),rim);}
   }
   float fx=pull_heat.y;
   if(fx>0.){float fl=fx*1.2*exp(-pow((x-1.1)/(.06+.5*(1.-fx)),2.));if(fl>L){L=fl;col=pull_WHITE;}}
