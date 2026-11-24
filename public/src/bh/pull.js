@@ -109,7 +109,7 @@ export default {
       M.set([d.p.slots.length?d.p.slots[0]:-1,Math.min(1,d.s.p),d.age,F&&F.d===d?F.vis:1],j*4);});
     const gl=ctx.gl;
     gl.uniform4fv(ctx.u('pull_s'),S);gl.uniform4fv(ctx.u('pull_m'),M);gl.uniform1f(ctx.u('pull_n'),L.length);
-    gl.uniform3f(ctx.u('pull_h'),G.cx*k,G.cy*k,G.Rh*k);gl.uniform1f(ctx.u('pull_t'),reduce?0:t);
+    gl.uniform3f(ctx.u('pull_h'),G.cx*k,G.cy*k,G.Rh*k);gl.uniform3fv(ctx.u('pull_spin'),ctx.spin);gl.uniform1f(ctx.u('pull_t'),reduce?0:t);
     gl.uniform1f(ctx.u('pull_c'),cue*clamp((ctx.e-.6)/.4));
     if(F){gl.uniform4f(ctx.u('pull_pc'),F.x*k,F.y*k,F.a,F.c/k);
       gl.uniform4f(ctx.u('pull_ps'),F.hw*k,F.hh*k,F.st,F.d.p.slots.length?F.d.p.slots[0]:-1);

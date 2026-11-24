@@ -1,4 +1,41 @@
 import PULL from './bh/pull.glsl.js';
+const BH_DISC=`
+float h(vec3 p){p=fract(p*.3183099+.1);p*=17.;return fract(p.x*p.y*p.z*(p.x+p.y+p.z));}
+float nz(vec3 x){vec3 i=floor(x),f=fract(x);f=f*f*(3.-2.*f);
+  return mix(mix(mix(h(i),h(i+vec3(1,0,0)),f.x),mix(h(i+vec3(0,1,0)),h(i+vec3(1,1,0)),f.x),f.y),
+             mix(mix(h(i+vec3(0,0,1)),h(i+vec3(1,0,1)),f.x),mix(h(i+vec3(0,1,1)),h(i+vec3(1,1,1)),f.x),f.y),f.z);}
+// black hole, seen from slightly above: a tilted, swirling accretion disk; its far half hides behind the dark horizon, its near half crosses in front
+float bhDisc(vec2 q,vec3 spin,float t,float w,bool big){
+  float s=spin.y; q/=1.-.3*s;                                         // spinning: the whole thing pulls in, the hole shrinks
+  float tl=.28, cx=cos(tl)*q.x-sin(tl)*q.y, cy=sin(tl)*q.x+cos(tl)*q.y;   // undo the tilt
+  vec2 d=vec2(cx,cy/.3); float rd=length(d), th=atan(d.y,d.x), r=length(q);
+  float rg=rd;   // on-screen radius: grooves are spaced by this, so they stay distinct while the disk tightens
+  rd=1.25+max(rd-1.25,0.)*(1.+.6*s)+min(rd-1.25,0.);                 // and the disk narrows into a tight band
+  float I=0.;
+  float ro=3.;
+  if(rd>1.25&&rd<ro){
+    bool far=d.y<0.;
+    if(!(far&&r<1.03)){
+      float ph=th-(t*1.7+spin.x*2.2)/pow(rd,1.5);                   // inner rings turn faster; dragging spins it up
+      float sw=nz(vec3(cos(ph)*rd*1.8,sin(ph)*rd*1.8,rd*2.5))*.6+nz(vec3(cos(ph*2.)*rd*4.,sin(ph*2.)*rd*4.,1.))*.4;
+      sw=smoothstep(.25,.8,sw);                                        // high-contrast streaks so the spin reads clearly
+      {float band=floor(rg*15./6.2832+.25), arcs=1.+step(.5,fract(band*.618));   // at speed the streaks settle into grooves...
+       float a=fract(ph*arcs/6.2832+fract(band*.7548));                 // ...that are bright at the head and taper off behind it,
+       if(spin.z<0.)a=1.-a;                                            // tail always trails the way it's turning
+       float tail=.12+.88*pow(a,1.8);                                    // so each ring reads as a streak racing round
+       float gr=smoothstep(.3,.7,.5+.5*sin(rg*15.));                    // crisper groove edges
+       sw=mix(sw*mix(.55,1.,gr),gr*tail,.65+.25*s);}                    // the tapered streaks stay at rest too; spinning just sharpens them                            // grooves show through even at rest, so the rings read
+      float heat=1.-smoothstep(1.35,ro,rd)*.85, dop=.78+.22*cos(th);        // the side coming toward you is brighter
+      I=heat*dop*(.38+1.15*sw)*(1.55+.25*s)*smoothstep(1.25,1.4,rd)*smoothstep(ro,ro-.4,rd);   // a crisper outer edge
+    }
+  }
+  I=max(I,exp(-pow((r-1.1)/(big?.045:.055),2.))*(1.+.25*sin(t*4.)));   // photon ring, breathing
+  float halo=(.13*exp(-pow((rd-2.1)/.8,2.))*smoothstep(3.3,2.7,rd)+.12*exp(-pow((r-1.2)/.17,2.))*step(1.,r))*(1.+.4*w);   // less glow bleeding past the disk
+  I=max(I,halo*(big?1.:.55)*(.8+.4*sin(t*1.3))*step(1.03,r));                    // never inside the shadow                                   // dithered glow hugging the disk
+  float sh=1.-w; I=max(I,exp(-pow((rd-1.3-sh*2.1)/(big?.06:.12),2.))*w*.55);   // shockwave when it swallows or lets go        // photon ring hugging the horizon
+  return I<.08?0.:I;
+}
+`;
 // GLSL for every program on the page. VS/FS draw the point sprites (stars, orbits, planets, moons, black hole),
 // WVS/WFS render the planet worlds into a low-res buffer, BFS blits that buffer as square pixels.
 
@@ -45,47 +82,13 @@ uniform vec3 u_m;          // mouse x, y, strength
 uniform vec4 u_ck;         // click x, y, age, on
 out vec4 v;
 
-float h(vec3 p){p=fract(p*.3183099+.1);p*=17.;return fract(p.x*p.y*p.z*(p.x+p.y+p.z));}
-float nz(vec3 x){vec3 i=floor(x),f=fract(x);f=f*f*(3.-2.*f);
-  return mix(mix(mix(h(i),h(i+vec3(1,0,0)),f.x),mix(h(i+vec3(0,1,0)),h(i+vec3(1,1,0)),f.x),f.y),
-             mix(mix(h(i+vec3(0,0,1)),h(i+vec3(1,0,1)),f.x),mix(h(i+vec3(0,1,1)),h(i+vec3(1,1,1)),f.x),f.y),f.z);}
+${BH_DISC}
 float rnd(float s){return fract(sin(s*91.7)*43758.5);}
 vec2 cam(vec2 p){return u_c+(p-u_cam.xy)*u_cam.z;}
 vec2 orbit(int i,float th){vec2 e=vec2(u_orb[i].x*cos(th)*u_fl.x,u_orb[i].y*sin(th)*u_fl.y)*u_s;
   float c=cos(u_rot),s=sin(u_rot);return u_c+vec2(c*e.x-s*e.y,s*e.x+c*e.y);}
 
 // planet surface: islands (one per window) on a sparse sea, lit from the upper left, ordered dither
-// black hole, seen from slightly above: a tilted, swirling accretion disk; its far half hides behind the dark horizon, its near half crosses in front
-float bhI(vec2 q,bool big){
-  float s=u_bhs.y; q/=1.-.3*s;                                         // spinning: the whole thing pulls in, the hole shrinks
-  float tl=.28, cx=cos(tl)*q.x-sin(tl)*q.y, cy=sin(tl)*q.x+cos(tl)*q.y;   // undo the tilt
-  vec2 d=vec2(cx,cy/.3); float rd=length(d), th=atan(d.y,d.x), r=length(q);
-  float rg=rd;   // on-screen radius: grooves are spaced by this, so they stay distinct while the disk tightens
-  rd=1.25+max(rd-1.25,0.)*(1.+.6*s)+min(rd-1.25,0.);                 // and the disk narrows into a tight band
-  float I=0.;
-  float ro=3.;
-  if(rd>1.25&&rd<ro){
-    bool far=d.y<0.;
-    if(!(far&&r<1.03)){
-      float ph=th-(u_t*1.7+u_bhs.x*2.2)/pow(rd,1.5);                   // inner rings turn faster; dragging spins it up
-      float sw=nz(vec3(cos(ph)*rd*1.8,sin(ph)*rd*1.8,rd*2.5))*.6+nz(vec3(cos(ph*2.)*rd*4.,sin(ph*2.)*rd*4.,1.))*.4;
-      sw=smoothstep(.25,.8,sw);                                        // high-contrast streaks so the spin reads clearly
-      {float band=floor(rg*15./6.2832+.25), arcs=1.+step(.5,fract(band*.618));   // at speed the streaks settle into grooves...
-       float a=fract(ph*arcs/6.2832+fract(band*.7548));                 // ...that are bright at the head and taper off behind it,
-       if(u_bhs.z<0.)a=1.-a;                                            // tail always trails the way it's turning
-       float tail=.12+.88*pow(a,1.8);                                    // so each ring reads as a streak racing round
-       float gr=smoothstep(.3,.7,.5+.5*sin(rg*15.));                    // crisper groove edges
-       sw=mix(sw*mix(.55,1.,gr),gr*tail,.65+.25*s);}                    // the tapered streaks stay at rest too; spinning just sharpens them                            // grooves show through even at rest, so the rings read
-      float heat=1.-smoothstep(1.35,ro,rd)*.85, dop=.78+.22*cos(th);        // the side coming toward you is brighter
-      I=heat*dop*(.38+1.15*sw)*(1.55+.25*s)*smoothstep(1.25,1.4,rd)*smoothstep(ro,ro-.4,rd);   // a crisper outer edge
-    }
-  }
-  I=max(I,exp(-pow((r-1.1)/(big?.045:.055),2.))*(1.+.25*sin(u_t*4.)));   // photon ring, breathing
-  float halo=(.13*exp(-pow((rd-2.1)/.8,2.))*smoothstep(3.3,2.7,rd)+.12*exp(-pow((r-1.2)/.17,2.))*step(1.,r))*(1.+.4*u_bh.w);   // less glow bleeding past the disk
-  I=max(I,halo*(big?1.:.55)*(.8+.4*sin(u_t*1.3))*step(1.03,r));                    // never inside the shadow                                   // dithered glow hugging the disk
-  float sh=1.-u_bh.w; I=max(I,exp(-pow((rd-1.3-sh*2.1)/(big?.06:.12),2.))*u_bh.w*.55);   // shockwave when it swallows or lets go        // photon ring hugging the horizon
-  return I<.08?0.:I;
-}
 float g_hot, g_city;
 // fine grids keep a fixed pixel pitch: things grow or shrink by revealing pixels, never by stretching the spacing (stretching is what drew the criss-cross seams)
 float gPitch(){return u_bdot+1./u_dpr;}
@@ -249,7 +252,7 @@ void main(){
     col=mix(vec3(1.,.97,.9),vec3(1.,.31,.13),smoothstep(.05,.55,fade))*mix(1.,.55,fade);
     size=u_pdot*(i<1.5?1.7:1.); alpha=u_comet.w*(1.-u_e);
   } else if(kind==13){                           // black hole on the pixel grid: small in orbit view, fine in the black-hole view
-    bool big=a.w>.5; vec2 q=a.xy; float I=bhI(q,big); if(I>0.)I+=u_bh.w*.12;
+    bool big=a.w>.5; vec2 q=a.xy; float I=bhDisc(q,u_bhs,u_t,u_bh.w,big); if(I>0.)I+=u_bh.w*.12;
     if(I<b) show=false;
     // impact: the disk's pixels physically react. A ripple runs outward through the disk plane,
     // the inner disk twists inward, and loose pixels shimmer as they get pulled
@@ -390,6 +393,7 @@ float b2(vec2 a){a=floor(a);return fract(dot(a,vec2(.5,a.y*.75)));}
 float b4(vec2 a){return b2(.5*a)*.25+b2(a);}
 float b8(vec2 a){return b4(.5*a)*.25+b2(a);}
 const vec3 BONE=vec3(.96,.94,.9);
+${BH_DISC}
 // ---- Starlee: an ocean world at dusk, islands lit by cities, Lumi in the sky ----
 const vec3 SUN=vec3(-.2,.09,.97);
 float hmap(vec2 p){return (fbm(p*.07)-.55)*14.;}
