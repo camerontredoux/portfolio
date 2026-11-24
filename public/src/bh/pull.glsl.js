@@ -34,6 +34,9 @@ vec4 pull(vec2 cell){
     float rim=1.-smoothstep(0.,2.5*w_cell,r-Rh);
     if(rim>0.){L=max(L,rim*.85*(1.+.25*sin(pull_t*4.)));col=mix(col,pull_hue(.85),rim);}
   }
+  float fb=dot(d/Rh,normalize(vec2(.35,.8)))-.12;
+  float front=exp(-fb*fb/.018)*(1.-smoothstep(1.2,1.9,x))*(.4+.55*fbm(d/Rh*3.+vec2(pull_t*.05,0.)));
+  if(front>L){L=front;col=pull_hue(front*.6+pull_heat.x*.3);}
   float fx=pull_heat.y;
   if(fx>0.){float fl=fx*1.2*exp(-pow((x-1.1)/(.06+.5*(1.-fx)),2.));if(fl>L){L=fl;col=pull_WHITE;}}
   for(int j=0;j<8;j++){if(float(j)>=pull_n)break;
