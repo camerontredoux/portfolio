@@ -3,8 +3,6 @@ import { startCometFeed, nextComet, ago, loadCraters, saveCraters } from './come
 import { ISL, PLN, APPN, SUP, FACTS, SCAPS, STRATA, MEM } from './content.js';
 import { renderFallback } from './fallback.js';
 import pull from './bh/pull.js';
-import tune from './bh/tune.js';
-import sink from './bh/sink.js';
 import plunge from './bh/plunge.js';
 
 
@@ -466,7 +464,7 @@ function openFromWorld(i){const mo=MOONS[i];exitWorld();
     else if(mo.st!=='moon'){zoomOut();}
     else if(ISL[i].p===zoom.focus){mz.i=i;mz.target=1;}
     else{zoomTo(ISL[i].p);mz.pending=i;}},1250);}
-const BH_K=PL.length,BHW={pull,tune,sink,plunge},BH_MODE={pull:6,tune:7,sink:8,plunge:9},wul={};
+const BH_K=PL.length,BHW={pull,plunge},BH_MODE={pull:6,plunge:9},wul={};
 const bhWorld=()=>wz.k===BH_K?BHW[wz.mode]:null;
 const bhCtx={gl,el:worldEl,u:n=>n in wul?wul[n]:(wul[n]=gl.getUniformLocation(wpr,n)),
   get W(){return W;},get H(){return H;},get DPR(){return DPR;},get narrow(){return NARROW;},
