@@ -5,7 +5,7 @@ const pad=n=>String(n).padStart(2,'0');
 /** @type {{hint:string,hintEnd:string,label:string,card:string,fragments:string[],page:string[],final:string[],
  *   commands:Record<string,string[]|((s:State,args:string[])=>string[])>,unknown:(cmd:string)=>string[]}} */
 export default {
-  hint:'catch the radiation · drag it outward before it escapes',
+  hint:'drag the smear outward to pull it free',
   hintEnd:'the hole has nothing left to radiate',
   label:'radiated',
   card:'frag',

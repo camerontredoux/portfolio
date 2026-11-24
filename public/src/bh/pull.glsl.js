@@ -1,7 +1,11 @@
 export default `
-uniform vec4 pull_q[8],pull_qm[8]; uniform vec3 pull_h,pull_spin; uniform float pull_n,pull_t;
-uniform vec2 pull_heat; uniform vec4 pull_pc,pull_pf;
-float pull_stars(vec2 q,float cellsPerUnit){vec2 g=floor(q*cellsPerUnit);return hh(g)>.982?.45+.6*hh(g+7.):0.;}
+uniform vec4 pull_q[8],pull_qm[8],pull_sm,pull_smm; uniform vec3 pull_h,pull_spin; uniform float pull_n,pull_t;
+uniform vec2 pull_heat; uniform vec4 pull_pc,pull_pf; uniform sampler2D pull_tx;
+float pull_sky(vec2 q,float cellsPerUnit){
+  vec2 g=floor(q*cellsPerUnit); float L=hh(g)>.982?.45+.6*hh(g+7.):0.;
+  float b=dot(q,normalize(vec2(-.35,.8)));
+  return L+exp(-b*b/.3)*(.15+.45*fbm(q*2.6))*.55;
+}
 const vec3 pull_EMBER=vec3(.95,.34,.08),pull_AMBER=vec3(1.,.66,.24),pull_WHITE=vec3(1.,.97,.86);
 vec3 pull_hue(float c){c=clamp(c,0.,1.);return c<.5?mix(pull_EMBER,pull_AMBER,c*2.):mix(pull_AMBER,pull_WHITE,c*2.-1.);}
 vec4 pull_plate(vec2 s,vec2 cell){
@@ -22,8 +26,13 @@ vec4 pull(vec2 cell){
   vec4 P=pull_plate(s,cell);
   float L=bhDisc(d/Rh,pull_spin,w_t,0.,true);
   bool shadow=x<1.03&&L<=0.;
-  if(L<=0.&&!shadow) L=pull_stars(d/r*(x-2.4/x),Rh/w_cell)*smoothstep(1.,1.7,x);
   vec3 col=pull_hue(L*.72+pull_heat.x*.55);
+  if(!shadow){
+    float Re=1.55, er=(x-Re)/.07;
+    float E=pull_sky(d/r*(x-Re*Re/x)+vec2(pull_t*.004,0.),Rh/w_cell)*mix(.3,1.,smoothstep(1.,1.7,x))
+      +exp(-er*er)*(.22+.2*n2(vec2(th*9.,pull_t*.2)));
+    if(E>L){L=E;col=pull_hue(E*.45+pull_heat.x*.3);}
+  }
   float fx=pull_heat.y;
   if(fx>0.){float fl=fx*1.2*exp(-pow((x-1.1)/(.06+.5*(1.-fx)),2.));if(fl>L){L=fl;col=pull_WHITE;}}
   for(int j=0;j<8;j++){if(float(j)>=pull_n)break;
@@ -36,16 +45,27 @@ vec4 pull(vec2 cell){
       float f=1.-along/A.w, l=f*.95*B.x*(pull_t>0.?.7+.3*hh(vec2(floor(along/w_cell),floor(pull_t*10.))):1.);
       if(l>L){L=l;col=B.y>.5?pull_EMBER:mix(pull_EMBER,pull_AMBER,f);}
     }
-    if(B.z>0.){
-      vec2 dq=A.xy-pull_h.xy; float rq=length(dq), da=atan(sin(th-atan(dq.y,dq.x)),cos(th-atan(dq.y,dq.x)));
+  }
+  if(pull_smm.y>0.){
+    vec4 S=pull_sm; float p=pull_smm.x, cv=pull_smm.z;
+    float da=atan(sin(th-S.x),cos(th-S.x)), u=da/(2.*S.w)+.5, v=(r-(S.y-S.z))/(2.*S.z);
+    if(cv>0.){
       float tt=abs(da)*r, sz=2.5*w_cell;
       for(int c=0;c<2;c++){
-        float yy=r-rq-(3.+3.5*float(c))*w_cell;
+        float yy=r-S.y-S.z-(2.+3.5*float(c))*w_cell;
         if(yy>=0.&&yy<=sz&&tt<sz&&abs(sz-tt-yy)<.75*w_cell){
-          float on=pull_t>0.?step(fract(pull_t*.7-float(c)*.3+float(j)*.11),.5):1.;
-          L=max(L,.95*B.z*mix(.35,1.,on));col=pull_AMBER;
+          float on=pull_t>0.?step(fract(pull_t*.7-float(c)*.3),.5):1.;
+          L=max(L,.95*cv*mix(.35,1.,on));col=pull_AMBER;
         }
       }
+    }
+    if(u>=0.&&u<=1.&&v>=0.&&v<=1.){
+      float sharp=mix(.1,1.,p);
+      float us=clamp(u+(hh(cell+floor(pull_t*5.)*.37)-.5)*(1.-sharp)*.5,0.,1.);
+      vec3 tc=texture(pull_tx,vec2(us,1.-v)).rgb;
+      float env=smoothstep(0.,.05+.22*(1.-sharp),min(u,1.-u))*smoothstep(0.,.03+.08*(1.-sharp),min(v,1.-v));
+      L=(dot(tc,vec3(.3,.59,.11))*mix(.8,1.15,sharp)+.3)*env*pull_smm.y;
+      col=mix(pull_hue(L*.75+.3*p),mix(BONE,tc*1.1+.04,.7),smoothstep(.7,1.,p)*.4);
     }
   }
   if(P.a>=0.){L=P.a;col=P.rgb;}

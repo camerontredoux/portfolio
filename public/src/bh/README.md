@@ -14,9 +14,9 @@ Pull owns three files:
 
 Pull is a small game about Hawking radiation. Archived projects are not in Pull; open them from their moons in the `bz` view.
 
-1. Every few seconds a pair of quanta appears on the photon ring. One falls in. The other drifts outward and escapes after about 5 seconds.
-2. Drag the escaping quantum outward to catch it. It unfolds into a fragment card: a small terminal with fragment k of the message and an input.
-3. Each catch makes the hole smaller (down to 45% of its radius) and hotter, and the next pair comes sooner.
+1. The next fragment waits on the rim, just outside the photon ring, as a smear: its first glyphs stretched along the horizon, glitchy and red-shifted. It arrives as a pair of quanta: one falls in, the other lands on the rim and spreads into the smear. It stays until you take it.
+2. Drag the smear outward to catch it. It sharpens and whitens as it comes off the rim, then unfolds into a fragment card: a small terminal with fragment k of the message and an input. Enter or the up arrow pulls it with the keyboard.
+3. Each catch makes the hole smaller (down to 45% of its radius) and hotter, and the next smear arrives sooner. Between catches, other pairs flicker at the horizon; their escaping partners fly off and can't be caught.
 4. Until half the fragments are caught, the card text and every terminal reply are scrambled. The catch that reaches half is the Page time: the hole flares and all caught fragments decode at once. After that, text arrives decoded.
 5. When all fragments are caught, the card shows the final lines from `story.js` and no more pairs appear.
 
@@ -51,4 +51,6 @@ The default export is GLSL that defines `vec4 pull(vec2 cell)`. It is placed in 
 - Shared uniforms: `w_res`, `w_scr`, `w_cell`, `w_t`, `w_dpr`, `w_e`, `w_fade`, `w_atl`. `w_ctr.xy` is the hole's centre and `w_ctr.z` its radius, in device px. `w_rev` is a reveal radius around the hole that grows to cover the screen.
 - `bhDisc(q, spin, t, w, big)` from `BH_DISC` in `../shaders.js` draws the black hole: the tilted accretion disc, the photon ring and the glow. The orbit and `bz` views use the same function, so the disc keeps its tilt from `bz` into Pull. `q` is the offset from the hole centre in hole radii, y down. The result is an intensity. Inside the shadow it is `0` except where the near side of the disc crosses in front.
 - The colours come from the black hole's own ramp in `VS` (`kind==13`): ember `(.95,.34,.08)`, amber `(1,.66,.24)`, white-hot `(1,.97,.86)`. `pull_hue(c)` maps 0 to 1 along that ramp.
+- Around the disc Pull draws a lensed sky: stars, a diagonal dust band, and a soft Einstein ring at 1.55 hole radii (`pull_sky`).
+- The smear samples `pull_tx`, a small canvas texture on texture unit 4 that `pull.js` redraws with the waiting fragment's glyphs. Before the Page time they are scrambled with the same seed as the fragment's card.
 - Return `vec4(colour, a)`: `a = 1.` draws a lit dot, `a = .5` draws background, `a = 0.` shows the scene behind.
