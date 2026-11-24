@@ -45,8 +45,6 @@ button:focus-visible{outline:1px solid var(--dim);outline-offset:3px}
 #card .btns button::after{content:"";position:absolute;inset:-12px -8px}
 #card .btns button b{font-weight:400;color:var(--ink)}
 #card .btns button:hover{color:var(--ink)}
-#bhl .btns{display:flex;gap:4px 16px;justify-content:flex-end;margin-top:2px}#bhl:not(.right) .btns{justify-content:center}
-#bhl button{position:relative;padding:0;line-height:1.7;pointer-events:auto}#bhl button::after{content:"";position:absolute;inset:-12px -8px}
 /* planet fact sheet: typed spec sheet with dotted leaders, like a field guide printed in the sky */
 .isl.under::before,.isl.under i{display:none}.isl.under{text-align:center}
 .isl.wipT{font-size:9px;line-height:1.35}.isl.wipT .n{color:#e9a66a}.isl.wipT .n+div{color:var(--dim)!important}

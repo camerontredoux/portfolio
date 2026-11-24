@@ -13,9 +13,8 @@ const clamp=(x,a=0,b=1)=>Math.min(b,Math.max(a,x));
 const tug=(t,j)=>{if(reduce)return 0;const x=(t*.22+j*.37)%1/.3;return x<1?Math.sin(Math.PI*x)**2:0;};
 
 function geometry(ctx){
-  const m=Math.min(ctx.W,ctx.H),hole=ctx.hole||{x:ctx.W/2,y:ctx.H/2,R:m*.1};
-  const Rh=hole.R+(m*(ctx.narrow?.2:.17)-hole.R)*ease(Math.min(1,ctx.e));
-  return {cx:hole.x,cy:hole.y,Rh,D:Math.min(240,Math.max(110,m*.3)),hs:Rh*(ctx.narrow?1:.92)};
+  const m=Math.min(ctx.W,ctx.H),{x:cx,y:cy,R:Rh}=ctx.hole;
+  return {cx,cy,Rh,D:Math.min(240,Math.max(110,m*.3)),hs:Rh*(ctx.narrow?1:.92)};
 }
 
 function layout(ctx,G){
@@ -76,7 +75,7 @@ function type(t){let n=Math.floor((t-typeT0)*1000/TYPE);
   if(n>=0)read.classList.add('done');}
 
 export default {
-  hint:'drag a red smear outward to pull it free',
+  hint:'drag a smear outward to pull it free',
   enter(ctx){
     grab=null;tried=false;sel=0;spin=0;out=null;openAt=-1;lines=[];st.clear();
     const empty=!ctx.projects().length,wh=ctx.el.querySelector('.wh');
