@@ -2,6 +2,10 @@ import { VS, FS, WVS, WFS, BFS } from './shaders.js';
 import { startCometFeed, nextComet, ago, loadCraters, saveCraters } from './comets.js';
 import { ISL, PLN, APPN, SUP, FACTS, SCAPS, STRATA, MEM } from './content.js';
 import { renderFallback } from './fallback.js';
+import pull from './bh/pull.js';
+import tune from './bh/tune.js';
+import sink from './bh/sink.js';
+import plunge from './bh/plunge.js';
 
 
 const cv = document.getElementById('c');
@@ -274,6 +278,7 @@ function endDrag(e){if(drag.on&&performance.now()-drag.t>90)bhSpinV*=.3;
     const span=(last[0]-first[0])/1000;sysV=nowR-last[0]>180?0:span>.012?(last[1]-first[1])/span:sysV;}
   if(nowR-drag.t>180){spinV=0;}
   sysV=Math.max(-6,Math.min(6,sysV));spinV=Math.max(-6,Math.min(6,spinV));
+  if(drag.moved)bhWorld()?.release?.(bhCtx);
   if(wz.k>=0&&drag.moved&&performance.now()-drag.wt>120){galVel=0;camV=0;depthV=0;}
   if(wz.k>=0&&curW()==='surface'&&drag.moved&&drag.zh.length>1){const nw=performance.now(),last=drag.zh[drag.zh.length-1];let first=last;
     for(let i=drag.zh.length-1;i>=0;i--){if(last[0]-drag.zh[i][0]>130)break;first=drag.zh[i];}
@@ -453,15 +458,31 @@ function drawGlyphMask(){const els=[...stEls.sl,...stEls.fc].filter(e=>e.isConne
   gl.activeTexture(gl.TEXTURE3);gl.bindTexture(gl.TEXTURE_2D,tmTex);gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,TM);
   gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);
   gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);gl.uniform1i(WU.w_tm,3);gl.activeTexture(gl.TEXTURE0);}
-function exitWorld(){wz.target=0;if(memS){memS=null;memv.classList.remove('on','dim','txt');}}
-function killWorld(){wz.mode=null;crPend=null;wz.target=0;wz.z=0;wz.k=-1;ew=0;worldEl.innerHTML='';document.body.classList.remove('inworld');}
+function exitWorld(){if(wz.k===BH_K&&wz.target===1){BHW[wz.mode].leave?.(bhCtx);bz.target=0;}wz.target=0;if(memS){memS=null;memv.classList.remove('on','dim','txt');}}
+function killWorld(){if(wz.k===BH_K&&wz.target===1)BHW[wz.mode].leave?.(bhCtx);wz.mode=null;crPend=null;wz.target=0;wz.z=0;wz.k=-1;ew=0;worldEl.innerHTML='';document.body.classList.remove('inworld');}
 // open a project from inside a world: leave the world, then fly to its moon (or the archive, if it was retired)
 function openFromWorld(i){const mo=MOONS[i];exitWorld();
   setTimeout(()=>{if(mo.st==='gone'){zoomOut();setTimeout(()=>{bz.target=1;},1300);}
     else if(mo.st!=='moon'){zoomOut();}
     else if(ISL[i].p===zoom.focus){mz.i=i;mz.target=1;}
     else{zoomTo(ISL[i].p);mz.pending=i;}},1250);}
+const BH_K=PL.length,BHW={pull,tune,sink,plunge},BH_MODE={pull:6,tune:7,sink:8,plunge:9},wul={};
+const bhWorld=()=>wz.k===BH_K?BHW[wz.mode]:null;
+const bhCtx={gl,el:worldEl,u:n=>n in wul?wul[n]:(wul[n]=gl.getUniformLocation(wpr,n)),
+  get W(){return W;},get H(){return H;},get DPR(){return DPR;},get narrow(){return NARROW;},
+  get t(){return performance.now()/1000;},get e(){return ew;},get leaving(){return wz.target!==1;},
+  get hole(){return bhScr;},get pointer(){return {x:m.tx,y:m.ty,down:drag.on};},get atlas(){return ATL;},
+  projects:()=>swallowed.map(i=>({i,t:ISL[i].t,d:ISL[i].d,slug:ISL[i].slug,slots:[...Array(nImg(i))].map((_,g)=>slotOf(i,g))})),
+  open(i){if(wz.k!==BH_K||wz.target!==1)return;if(MOONS[i].st!=='gone'){openFromWorld(i);return;}
+    BHW[wz.mode].leave?.(bhCtx);wz.target=0;
+    setTimeout(()=>{if(wz.k>=0&&wz.target===1||bz.target!==1||MOONS[i].st!=='gone')return;
+      const t=performance.now()/1000;mpulse[i]=t;ring2.i=i;ring2.t0=t;mz.i=i;mz.target=1;},1250);}};
+function enterBH(name){if(!BHW[name]||wz.k>=0)return;closeCard();closeFacts();
+  wz.k=BH_K;wz.mode=name;wz.target=1;wMoved=0;bz.target=1;
+  worldEl.innerHTML=`<div class="wh">${BHW[name].hint||name}</div>`;BHW[name].enter?.(bhCtx);}
+document.querySelectorAll('#bhl button').forEach(b=>b.addEventListener('click',()=>enterBH(b.dataset.w)));
 function worldDrag(dx,dy,dt){wMoved+=Math.hypot(dx,dy);const t=curW();
+  if(bhWorld()){bhWorld().drag?.(bhCtx,dx,dy,dt);return;}
   if(t==='crater'){crYawT-=dx*.006;crZoom=Math.max(-.6,Math.min(1,crZoom-dy*.004));return;}
   if(t==='gallery'){const d=-dx/(GT_T+GT_G);galX=Math.max(-.4,Math.min(GT.length-.6,galX+d));galVel=galVel*.5+d/dt*.5;galT=galX;}
   if(t==='surface'){if(!drag.axis)drag.axis=Math.abs(dy)>=Math.abs(dx)*.8?'y':'x';
@@ -469,6 +490,7 @@ function worldDrag(dx,dy,dt){wMoved+=Math.hypot(dx,dy);const t=curW();
     else yawT=Math.max(-.45,Math.min(.45,yawT+dx*.0022));}
   if(t==='strata'){const {max}=SL();depth=Math.max(0,Math.min(max,depth-dy));depthV=depthV*.5+(-dy/dt)*.5;}}
 function worldTap(x,y){const t=curW();
+  if(bhWorld()){bhWorld().tap?.(bhCtx,x,y);return;}
   if(t==='crater')return;
   if(t==='gallery'){const T=GT_T,gy=NARROW?CY-30:CY-24;
     for(let ti=0;ti<GT.length;ti++){const cx=CX+(ti-galX)*(T+GT_G);if(Math.abs(x-cx)<T/2&&Math.abs(y-gy)<T/2){
@@ -492,6 +514,7 @@ function spinTarget(){
 addEventListener('wheel',e=>{
   {const T=spinTarget();if(T){e.preventDefault();T.nudge(wheelAmount(e)*T.scale);return;}}
   if(wz.k<0||wz.target!==1)return;monoFly=null;e.preventDefault();wMoved+=(Math.abs(e.deltaX)+Math.abs(e.deltaY))*(e.deltaMode===1?16:1);const t=curW(),d=e.deltaY+e.deltaX;
+  bhWorld()?.wheel?.(bhCtx,e);
   if(t==='crater'){crZoom=Math.max(-.6,Math.min(1,crZoom-e.deltaY*.002));crYawT+=SPIN_X*e.deltaX*.004;}   // the camera circles, so the ground turns the way the planets do
   if(t==='surface')camV=Math.max(-30,Math.min(30,camV+d*.025));
   if(t==='strata'){depthV+=d*2.6;}
@@ -537,12 +560,13 @@ function restoreFromHole(i){const j=swallowed.indexOf(i);if(j<0)return;swallowed
   Object.assign(MOONS[i],{st:'fromHole',t:0,slot:99,ox:(q.x-bhScr.x)/Rb,oy:(q.y-bhScr.y)/Rb,or:(q.r||0)/Rb});reslot(MOONS[i].p);bhPulse=performance.now()/1000;updCounts();
   if(!swallowed.length)setTimeout(()=>{if(!swallowed.length)bz.target=0;},1100);}
 function reslot(p){MOONS.filter(o=>o.p===p&&o.st!=='belt'&&o.st!=='gone'&&o.st!=='toBelt'&&o.st!=='toHole').sort((a,b)=>a.slot-b.slot).forEach((o,j)=>o.slot=j);}
+const archiveLine=()=>{const n=swallowed.length;return n?'archive · '+n+(n===1?' project':' projects'):'archive · empty';};
 function updCounts(){
   PL.forEach((_,k)=>{const n=MOONS.filter(o=>o.p===k&&(o.st==='moon'||o.st==='fromBelt'||o.st==='fromHole')).length,d=labs[k].lastElementChild,P=PLN[k];
     d.textContent=(P.noun?n+' '+P.noun+(n===1?'':'s')+' · ':'')+(k===4&&!waiting?'2026':P.sub);});
-  const nb=MOONS.filter(o=>o.st==='belt'||o.st==='toBelt').length,nh=swallowed.length;
+  const nb=MOONS.filter(o=>o.st==='belt'||o.st==='toBelt').length;
   document.getElementById('beltc').textContent=nb?'asteroid belt · '+nb+' in progress':'';
-  document.getElementById('bhc').textContent=nh?nh+' closed · tap to restore':'nothing closed';
+  document.getElementById('bhc').textContent=archiveLine();
   listFor=-2;
 }
 function minimize(i){const mo=MOONS[i],q=moonPos[i];if(mo.st!=='moon')return;
@@ -613,7 +637,7 @@ document.getElementById('rest').addEventListener('click',()=>{const i=mz.i;if(i<
   setTimeout(()=>{restoreFromHole(i);bz.target=0;},380+1050);            // 2. it breaks free and flies home as the camera pulls out
 });
 addEventListener('keydown',e=>{if(wz.k>=0&&wz.target===1){const t=curW();wMoved+=120;
-    if(e.key==='Escape')exitWorld();
+    if(e.key==='Escape')exitWorld();else bhWorld()?.key?.(bhCtx,e);
     if(t==='gallery'&&(e.key==='ArrowRight'||e.key==='ArrowLeft'))galT=Math.max(0,Math.min(GT.length-1,Math.round(galT)+(e.key==='ArrowRight'?1:-1)));
     if(t==='gallery'&&e.key==='Enter'){const ti=Math.round(galX);if(GT[ti])openFromWorld(GT[ti].i);}
     if(t==='strata'&&(e.key==='ArrowDown'||e.key==='ArrowUp'))depthV+=(e.key==='ArrowDown'?1:-1)*900;
@@ -742,8 +766,8 @@ function frame(now){
     const sc=(1+.15*pulse)*(1-.3*bhS);bl.style.width=w*sc+'px';bl.style.height=h*sc+'px';
     bl.style.opacity=Math.min(1,Math.max(1-Math.max(e,eB),eB)*(1-e2)*(.42+.08*Math.sin(performance.now()/700)+.3*pulse)).toFixed(3);
     bl.style.transform=`translate(${bhScr.x-w*sc/2}px,${bhScr.y-h*sc/2}px) rotate(-16deg)`;}
-   const bl=document.getElementById('bhl');bl.style.opacity=(1-e)*(1-eB)*(F<0?1:0);bl.classList.add('right');
-   bl.style.transform=`translate(${Math.round(bhScr.x-Rh*3.3)}px,${Math.round(bhScr.y+Rh*1.2)}px) translate(-100%,0)`;
+   const bl=document.getElementById('bhl'),bo=(1-e)*(1-eB)*(F<0?1:0);bl.style.opacity=bo;if(bl.inert!==bo<.5)bl.inert=bo<.5;bl.classList.toggle('right',!NARROW);
+   bl.style.transform=NARROW?`translate(${Math.round(bhScr.x)}px,${Math.round(bhScr.y+Rh*2)}px) translate(-50%,0)`:`translate(${Math.round(bhScr.x-Rh*3.3)}px,${Math.round(bhScr.y+Rh*1.2)}px) translate(-100%,0)`;
    document.getElementById('beltl').style.opacity=0;}
   // moons: in orbit view they ride along with the camera; on the landed planet they get a wider orbit and a bigger, finer grid
   const nowS=performance.now()/1000;
@@ -840,8 +864,7 @@ function frame(now){
   }
   // moon view title
   mtitle.style.opacity=e2>.3?0:(eB>.5?(eB-.5)*2:0);
-  if(eB>0&&e2<.5){const n=swallowed.length;mtitle.firstChild.textContent='Void';
-    mtitle.lastChild.textContent=n?'archive · '+n+(n===1?' project':' projects'):'archive · empty';}
+  if(eB>0&&e2<.5){mtitle.firstChild.textContent='Void';mtitle.lastChild.textContent=archiveLine();}
   if(mz.i>=0&&(eB===0||e2>=.5)){const s2=ISL[mz.i];mtitle.firstChild.innerHTML=`${APPN[s2.p]}<sup>${SUP[s2.p]}</sup>`;mtitle.lastChild.textContent=s2.t;}
   // window card: follows its moon, or docks beside the big moon in moon view
   if(cardI>=0&&(zoom.focus>=0||zoom.z>0||bz.z>0))closeCard();   // the window card is an orbit-view (HERE) thing only
@@ -907,7 +930,7 @@ function frame(now){
   document.body.classList.toggle('inworld',ew>.03);
   if(wz.k>=0){
     const t=curW(),P=pos[wz.k];
-    if(wz.target===1){const t2='← Back to '+APPN[wz.k];if(back.textContent!==t2)back.textContent=t2;}
+    if(wz.target===1&&wz.k!==BH_K){const t2='← Back to '+APPN[wz.k];if(back.textContent!==t2)back.textContent=t2;}
     const kids=[...worldEl.children],wh=worldEl.querySelector('.wh');
     if(wh)wh.style.opacity=sstep(.85,1,ew)*(1-sstep(HINT_GONE*.5,HINT_GONE,wMoved));
     if(t==='surface'){   // the planet swells toward you as you fall into it
@@ -984,12 +1007,12 @@ function frame(now){
       if(eB>0)gl.drawArrays(gl.POINTS,RG.h[0],RG.h[1]);}}}             // the black hole's own view
   if(wz.k>=0&&curW()==='gallery'&&ew>0)gl.drawArrays(gl.POINTS,galStart,galCount);
   if(wz.k>=0&&curW()!=='gallery'&&ew>0){
-    const t=curW(),P=pos[wz.k],L=SL();
+    const t=curW(),P=bhWorld()?{x:bhScr.x,y:bhScr.y,r:bhScr.R}:pos[wz.k],L=SL();
     gl.bindFramebuffer(gl.FRAMEBUFFER,wfb);gl.viewport(0,0,wCols,wRows);gl.disable(gl.BLEND);
     gl.clearColor(0,0,0,0);gl.clear(gl.COLOR_BUFFER_BIT);
     gl.useProgram(wpr);gl.bindVertexArray(wvao);
     gl.uniform2f(WU.w_res,wCols,wRows);gl.uniform2f(WU.w_scr,cv.width,cv.height);gl.uniform1f(WU.w_cell,wCell);gl.uniform1f(WU.w_t,now/1000);gl.uniform1f(WU.w_dpr,DPR);
-    gl.uniform1f(WU.w_mode,t==='surface'?1:t==='crater'?5:3);gl.uniform1f(WU.w_fade,t==='strata'?wz.z:sstep(.15,.7,ew));   /* Resume sweeps in and out on a straight clock */   /* Resume leaves on a straight clock: pixels start going the instant you press back */gl.uniform1f(WU.w_e,ew);gl.uniform2f(WU.w_cam,camZ,yaw);
+    gl.uniform1f(WU.w_mode,bhWorld()?BH_MODE[t]:t==='surface'?1:t==='crater'?5:3);gl.uniform1f(WU.w_fade,t==='strata'?wz.z:sstep(.15,.7,ew));   /* Resume sweeps in and out on a straight clock */   /* Resume leaves on a straight clock: pixels start going the instant you press back */gl.uniform1f(WU.w_e,ew);gl.uniform2f(WU.w_cam,camZ,yaw);
     if(t==='crater'){const c=crSite;gl.uniform3f(WU.w_cr,crRep-(CR_MT-.6),Math.max(.12,1-(now/1000-c.t)/90),c.slot);gl.uniform2f(WU.w_cam,crZoom,crYaw);}
     {const cx=t==='crater'?crSite.sx:P.x,cy=t==='crater'?crSite.sy:P.y;revC.x=cx;revC.y=cy;gl.uniform3f(WU.w_ctr,cx*DPR,cy*DPR,P.r*DPR);}{const cx2=(t==='crater'?crSite.sx:P.x)*DPR,cy2=(t==='crater'?crSite.sy:P.y)*DPR,rm=t==='strata'?1e6:Math.max(Math.hypot(cx2,cy2),Math.hypot(cv.width-cx2,cy2),Math.hypot(cx2,cv.height-cy2),Math.hypot(cv.width-cx2,cv.height-cy2));gl.uniform1f(WU.w_rev,ew*rm*1.02);}   /* just covers the screen at full: leaving starts shrinking at once, no dead time */
     if(t==='surface'){const mv=new Float32Array(32),ms=new Float32Array(8),mvis=new Float32Array(8),nS=now/1000;MONO.slice(0,8).forEach((i,j)=>{const P=monoPos(j,nS);mv.set(P,j*4);ms[j]=MEM_SLOT+i;
@@ -999,6 +1022,7 @@ function frame(now){
     gl.uniform1fv(WU.w_lay,new Float32Array([0,L.LH,2*L.LH,3*L.LH,4*L.LH,1e7].map(v=>v*DPR)));
     {const fo=FOS(),fv=new Float32Array(16),fsl=new Float32Array(4);fo.forEach((f,j)=>{fv.set([f.x*DPR,f.y*DPR,f.s*DPR,f.s*DPR],j*4);fsl[j]=f.lg;});
      gl.uniform4fv(WU.w_fos,fv);gl.uniform1fv(WU.w_fosS,fsl);}
+    bhWorld()?.frame?.(bhCtx,dt);
     gl.activeTexture(gl.TEXTURE0);gl.bindTexture(gl.TEXTURE_2D,tex);gl.uniform1i(WU.w_atl,0);gl.activeTexture(gl.TEXTURE2);gl.bindTexture(gl.TEXTURE_2D,ltex);gl.uniform1i(WU.w_logo,2);drawGlyphMask();
     gl.drawArrays(gl.TRIANGLES,0,3);
     gl.bindFramebuffer(gl.FRAMEBUFFER,null);gl.viewport(0,0,cv.width,cv.height);
