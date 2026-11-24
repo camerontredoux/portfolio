@@ -5,38 +5,43 @@ float nz(vec3 x){vec3 i=floor(x),f=fract(x);f=f*f*(3.-2.*f);
   return mix(mix(mix(h(i),h(i+vec3(1,0,0)),f.x),mix(h(i+vec3(0,1,0)),h(i+vec3(1,1,0)),f.x),f.y),
              mix(mix(h(i+vec3(0,0,1)),h(i+vec3(1,0,1)),f.x),mix(h(i+vec3(0,1,1)),h(i+vec3(1,1,1)),f.x),f.y),f.z);}
 // black hole, seen from slightly above: a tilted, swirling accretion disk; its far half hides behind the dark horizon, its near half crosses in front
-float bhDiscX(vec2 q,vec3 spin,float t,float w,bool big,float gro,float asp,float shrink){
+// the disc's light at disc radius rd (rg spaces the grooves) and angle th; Pull also samples it at the lensed arches
+float bhTex(float rd,float rg,float th,vec3 spin,float t){
+  float s=spin.y, ro=3.;
+  if(rd<=1.25||rd>=ro) return 0.;
+  float ph=th-(t*1.7+spin.x*2.2)/pow(rd,1.5);                   // inner rings turn faster; dragging spins it up
+  float sw=nz(vec3(cos(ph)*rd*1.8,sin(ph)*rd*1.8,rd*2.5))*.6+nz(vec3(cos(ph*2.)*rd*4.,sin(ph*2.)*rd*4.,1.))*.4;
+  sw=smoothstep(.25,.8,sw);                                        // high-contrast streaks so the spin reads clearly
+  {float band=floor(rg*15./6.2832+.25), arcs=1.+step(.5,fract(band*.618));   // at speed the streaks settle into grooves...
+   float a=fract(ph*arcs/6.2832+fract(band*.7548));                 // ...that are bright at the head and taper off behind it,
+   if(spin.z<0.)a=1.-a;                                            // tail always trails the way it's turning
+   float tail=.12+.88*pow(a,1.8);                                    // so each ring reads as a streak racing round
+   float gr=smoothstep(.3,.7,.5+.5*sin(rg*15.));                    // crisper groove edges
+   sw=mix(sw*mix(.55,1.,gr),gr*tail,.65+.25*s);}                    // the tapered streaks stay at rest too; spinning just sharpens them
+  float heat=1.-smoothstep(1.35,ro,rd)*.85, dop=.78+.22*cos(th);        // the side coming toward you is brighter
+  return heat*dop*(.38+1.15*sw)*(1.55+.25*s)*smoothstep(1.25,1.4,rd)*smoothstep(ro,ro-.4,rd);   // a crisper outer edge
+}
+float bhGlow(float I,float r,float rd,float t,float w,bool big,float pr);
+// gro, asp and shrink let Pull grow, flatten and pin the disc; pr scales the photon ring and glow
+float bhDiscX(vec2 q,vec3 spin,float t,float w,bool big,float gro,float asp,float shrink,float pr){
   float s=spin.y; q/=1.-shrink*s;                                     // spinning: the whole thing pulls in, the hole shrinks
   float tl=.28, cx=cos(tl)*q.x-sin(tl)*q.y, cy=sin(tl)*q.x+cos(tl)*q.y;   // undo the tilt
   vec2 d=vec2(cx,cy/asp); float rd=length(d), th=atan(d.y,d.x), r=length(q);
-  rd=1.25+(rd-1.25)/gro;   // Pull stretches the disc outward from the hole; the hole itself stays put
+  rd=1.25+(rd-1.25)/gro;
   float rg=rd;   // on-screen radius: grooves are spaced by this, so they stay distinct while the disk tightens
   rd=1.25+max(rd-1.25,0.)*(1.+.6*s)+min(rd-1.25,0.);                 // and the disk narrows into a tight band
-  float I=0.;
-  float ro=3.;
-  if(rd>1.25&&rd<ro){
-    bool far=d.y<0.;
-    if(!(far&&r<1.03)){
-      float ph=th-(t*1.7+spin.x*2.2)/pow(rd,1.5);                   // inner rings turn faster; dragging spins it up
-      float sw=nz(vec3(cos(ph)*rd*1.8,sin(ph)*rd*1.8,rd*2.5))*.6+nz(vec3(cos(ph*2.)*rd*4.,sin(ph*2.)*rd*4.,1.))*.4;
-      sw=smoothstep(.25,.8,sw);                                        // high-contrast streaks so the spin reads clearly
-      {float band=floor(rg*15./6.2832+.25), arcs=1.+step(.5,fract(band*.618));   // at speed the streaks settle into grooves...
-       float a=fract(ph*arcs/6.2832+fract(band*.7548));                 // ...that are bright at the head and taper off behind it,
-       if(spin.z<0.)a=1.-a;                                            // tail always trails the way it's turning
-       float tail=.12+.88*pow(a,1.8);                                    // so each ring reads as a streak racing round
-       float gr=smoothstep(.3,.7,.5+.5*sin(rg*15.));                    // crisper groove edges
-       sw=mix(sw*mix(.55,1.,gr),gr*tail,.65+.25*s);}                    // the tapered streaks stay at rest too; spinning just sharpens them                            // grooves show through even at rest, so the rings read
-      float heat=1.-smoothstep(1.35,ro,rd)*.85, dop=.78+.22*cos(th);        // the side coming toward you is brighter
-      I=heat*dop*(.38+1.15*sw)*(1.55+.25*s)*smoothstep(1.25,1.4,rd)*smoothstep(ro,ro-.4,rd);   // a crisper outer edge
-    }
-  }
-  I=max(I,exp(-pow((r-1.1)/(big?.045:.055),2.))*(1.+.25*sin(t*4.)));   // photon ring, breathing
+  float I=d.y<0.&&r<1.03?0.:bhTex(rd,rg,th,spin,t);                   // the far half hides behind the horizon
+  return bhGlow(I,r,rd,t,w,big,pr);
+}
+// photon ring, glow and shockwave over the disc's light I; pr scales the ring and glow, which Pull draws its own way
+float bhGlow(float I,float r,float rd,float t,float w,bool big,float pr){
+  I=max(I,pr*exp(-pow((r-1.1)/(big?.045:.055),2.))*(1.+.25*sin(t*4.)));   // photon ring, breathing
   float halo=(.13*exp(-pow((rd-2.1)/.8,2.))*smoothstep(3.3,2.7,rd)+.12*exp(-pow((r-1.2)/.17,2.))*step(1.,r))*(1.+.4*w);   // less glow bleeding past the disk
-  I=max(I,halo*(big?1.:.55)*(.8+.4*sin(t*1.3))*step(1.03,r));                    // never inside the shadow                                   // dithered glow hugging the disk
-  float sh=1.-w; I=max(I,exp(-pow((rd-1.3-sh*2.1)/(big?.06:.12),2.))*w*.55);   // shockwave when it swallows or lets go        // photon ring hugging the horizon
+  I=max(I,pr*halo*(big?1.:.55)*(.8+.4*sin(t*1.3))*step(1.03,r));                    // never inside the shadow
+  float sh=1.-w; I=max(I,exp(-pow((rd-1.3-sh*2.1)/(big?.06:.12),2.))*w*.55);   // shockwave when it swallows or lets go
   return I<.08?0.:I;
 }
-float bhDisc(vec2 q,vec3 spin,float t,float w,bool big){return bhDiscX(q,spin,t,w,big,1.,.3,.3);}
+float bhDisc(vec2 q,vec3 spin,float t,float w,bool big){return bhDiscX(q,spin,t,w,big,1.,.3,.3,1.);}
 `;
 // GLSL for every program on the page. VS/FS draw the point sprites (stars, orbits, planets, moons, black hole),
 // WVS/WFS render the planet worlds into a low-res buffer, BFS blits that buffer as square pixels.

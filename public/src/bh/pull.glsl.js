@@ -6,14 +6,31 @@ float pull_sky(vec2 q,float cellsPerUnit){
   float b=dot(q,vec2(.276,.961));   // the reference background band, turned to lie along the tilted ring (tl=.28)
   return L+exp(-b*b/.3)*(.15+.45*fbm(q*2.6))*.55;
 }
-// The bz disc itself, so entering is one disc transforming: Pull starts with it exactly as bz drew it, then stretches
-// it outward and flattens it. Spinning pulls it back in tight.
+// The bz disc itself, so entering is one disc transforming: Pull starts with it exactly as bz drew it (bhDiscX's
+// mapping), then stretches it outward and flattens it. Spinning pulls it back in tight.
+// Lensing grows in with it: above the hole the disc's own coordinates bend from the flat ellipse into a circle
+// hugging the shadow, so its far side arches over the top as one continuous surface, with no seam where it meets
+// the flat disc. Its underside shows as a dim arc just below the shadow.
 float pull_ring(vec2 q,float r,out bool front){
   float m=smoothstep(.3,1.,w_e), s=pull_spin.y;
-  float gro=mix(1.,2.6,m)/(1.+.7*s), asp=mix(.3,.2,m)*(1.-.35*s);
-  float I=bhDiscX(q,pull_spin,pull_t,0.,true,gro,asp,0.);
+  float gro=mix(1.,2.6,m)/(1.+.7*s), asp=mix(.3,.2,m)*(1.-.35*s), W=1.05/(1.+.5*s);
+  float tl=.28; vec2 t=vec2(cos(tl)*q.x-sin(tl)*q.y,sin(tl)*q.x+cos(tl)*q.y);
+  float ph=atan(t.y,t.x), up=max(-t.y,0.)/max(r,1e-3);
+  float rL=1.25+max(r-1.06,0.)*1.75/W;                                   // disc radius seen bent round at screen radius r
+  vec2 dF=vec2(t.x,t.y/asp), dL=(1.25+(rL-1.25)*gro)*vec2(cos(ph),sin(ph));
+  float Lw=m*smoothstep(0.,.7,up)*exp(-max(r-1.06,0.)/(1.3*W));
+  vec2 d=mix(dF,dL,Lw);
+  float rd=length(d), th=atan(d.y,d.x);
+  rd=1.25+(rd-1.25)/gro; float rg=rd;
+  rd=1.25+max(rd-1.25,0.)*(1.+.6*s)+min(rd-1.25,0.);
+  float I=t.y<0.&&r<1.03?0.:bhTex(rd,rg,th,pull_spin,pull_t)*(1.+.35*Lw);
   front=r<1.03&&I>0.;
-  return I;
+  if(t.y>0.&&r>1.03&&m>0.){                                              // the underside, bent round below the shadow
+    float rb=1.25+(r-1.1)*1.75/(W*.35);
+    float B=bhTex(rb,rb,-ph,pull_spin,pull_t)*smoothstep(.25,.8,t.y/r)*exp(-pow(max(r-1.1,0.)/(.28*W),2.))*.6;
+    I=max(I,B*m);
+  }
+  return bhGlow(I,r,rd,pull_t,0.,true,1.-m);
 }
 const vec3 pull_EMBER=vec3(.95,.34,.08),pull_AMBER=vec3(1.,.66,.24),pull_WHITE=vec3(1.,.97,.86);
 vec3 pull_hue(float c){c=clamp(c,0.,1.);return c<.5?mix(pull_EMBER,pull_AMBER,c*2.):mix(pull_AMBER,pull_WHITE,c*2.-1.);}
@@ -39,13 +56,12 @@ vec4 pull(vec2 cell){
   if(!shadow){
     float Re=1.55;
     L=pull_sky(d/r*(x-Re*Re/x)+vec2(pull_t*.004,0.),Rh/w_cell)*mix(.3,1.,smoothstep(1.,1.7,x));
-    float rd=(x-Re)/.07; L+=exp(-rd*rd)*(.22+.2*n2(vec2(th*9.,pull_t*.2)));
-    L*=smoothstep(.35,1.,w_e);
+    L*=smoothstep(.35,1.,w_e)*mix(.25,1.,smoothstep(1.8,3.5,x));
     col=pull_hue(L*.45+pull_heat.x*.3)*.62;   // the reference reads dim red-brown (~#6E3620), not bright orange
-    float rim=1.-smoothstep(0.,2.5*w_cell,r-Rh);
-    if(rim>0.){L=max(L,rim*.85*(1.+.25*sin(pull_t*4.)));col=mix(col,pull_hue(.85),rim);}
+    float rim=1.-smoothstep(0.,1.2*w_cell,r-Rh);
+    if(rim>0.){L=max(L,rim*.7*(1.+.2*sin(pull_t*4.)));col=mix(col,pull_hue(.5),rim);}
   }
-  {bool nf; float R=pull_ring(d/Rh,x,nf); if(R>L||nf){L=R;col=pull_hue(R*.72+pull_heat.x*.3);}}
+  {bool nf; float R=pull_ring(d/Rh,x,nf); if(R>L||nf){L=R;col=pull_hue(R*.55+pull_heat.x*.3);}}
   float fx=pull_heat.y;
   if(fx>0.){float fl=fx*1.2*exp(-pow((x-1.1)/(.06+.5*(1.-fx)),2.));if(fl>L){L=fl;col=pull_WHITE;}}
   for(int j=0;j<8;j++){if(float(j)>=pull_n||!late)break;
@@ -77,8 +93,9 @@ vec4 pull(vec2 cell){
       float us=clamp(u+(hh(cell+floor(pull_t*5.)*.37)-.5)*(1.-sharp)*.5,0.,1.);
       vec3 tc=texture(pull_tx,vec2(us,1.-v)).rgb;
       float env=smoothstep(0.,.05+.22*(1.-sharp),min(u,1.-u))*smoothstep(0.,.03+.08*(1.-sharp),min(v,1.-v));
-      L=(dot(tc,vec3(.3,.59,.11))*mix(.8,1.15,sharp)+.3)*env*pull_smm.y;
-      col=mix(pull_hue(L*.75+.3*p),mix(BONE,tc*1.1+.04,.7),smoothstep(.7,1.,p)*.4);
+      float Ls=(dot(tc,vec3(.3,.59,.11))*mix(.8,1.15,sharp)+.3)*pull_smm.y;   // blended over the disc, so its ends fade into it, never cut it
+      vec3 cs=mix(pull_hue(Ls*.75+.3*p),mix(BONE,tc*1.1+.04,.7),smoothstep(.7,1.,p)*.4);
+      float k=env*min(pull_smm.y,1.); L=mix(L,Ls,k); col=mix(col,cs,k);
     }
   }
   if(P.a>=0.){L=P.a;col=P.rgb;}
