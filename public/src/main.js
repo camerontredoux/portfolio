@@ -817,12 +817,12 @@ function frame(now){
     if(wPend>=0){if(zoom.focus!==wPend||zoom.target!==1)wPend=-1;else if(zoom.z>=1){const k=wPend;wPend=-1;enterWorld(k);}}
   {const F2=zoom.focus,on=F2>=0&&zoom.target===1&&zoom.z>=1&&mz.z===0&&mz.target===0&&wz.k<0&&bz.z===0;   // every planet's field notes stream in on their own once you land
    if(on&&factsK!==F2)openFacts(F2);}   // field notes are simply part of a landed planet: no toggle
-  // fact sheet: bottom left on desktop, under the planet on phones
+  // fact sheet: bottom left on desktop; on phones under the planet, left-aligned with the clock
   if(factsK>=0){
     factsTick();
     const P=pos[factsK],fw=factsEl.offsetWidth,fh=factsEl.offsetHeight;
     let fx,fy;
-    if(NARROW){fx=(W-fw)/2;fy=Math.min(H-fh-48,P.y+P.r+28);}
+    if(NARROW){fx=14;fy=Math.min(H-fh-48,P.y+P.r+28);}   // left-aligned with the clock below it
     else{fx=28;fy=H-fh-44;}                                             // desktop: bottom left, sitting just above the clock
     factsEl.style.transform=`translate(${Math.round(fx)}px,${Math.round(Math.max(56,fy))}px)`;
     if(NARROW){islLabs.forEach(L=>L.style.opacity=Math.min(+L.style.opacity||0,.12));islList.style.opacity=0;}
