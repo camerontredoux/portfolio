@@ -34,6 +34,9 @@ float pull_ring(vec2 q,float r,out bool front){
 }
 const vec3 pull_EMBER=vec3(.95,.34,.08),pull_AMBER=vec3(1.,.66,.24),pull_WHITE=vec3(1.,.97,.86);
 vec3 pull_hue(float c){c=clamp(c,0.,1.);return c<.5?mix(pull_EMBER,pull_AMBER,c*2.):mix(pull_AMBER,pull_WHITE,c*2.-1.);}
+// zoomed in, the disc goes to the old Pull's dim rust, pale only at its hottest
+vec3 pull_rust(float c){c=clamp(c,0.,1.);
+  return c<.5?mix(vec3(.42,.17,.08),vec3(.70,.31,.11),c*2.):c<.8?mix(vec3(.70,.31,.11),vec3(.86,.46,.20),(c-.5)/.3):mix(vec3(.86,.46,.20),vec3(.96,.78,.56),(c-.8)/.2);}
 vec4 pull_plate(vec2 s,vec2 cell){
   if(pull_pf.z<=0.||(pull_pf.x<1.&&hh(cell*1.3)>pull_pf.x)) return vec4(-1.);
   float g=pull_pf.w, tk=floor(pull_t*12.), row=floor(cell.y/2.);
@@ -59,7 +62,8 @@ vec4 pull(vec2 cell){
     L*=smoothstep(.35,1.,w_e)*mix(.25,1.,smoothstep(1.8,3.5,x));
     col=pull_hue(L*.45+pull_heat.x*.3)*.62;   // the reference reads dim red-brown (~#6E3620), not bright orange
   }
-  {bool nf; float R=pull_ring(d/Rh,x,nf); if(R>L||nf){L=R;col=pull_hue(R*.55+pull_heat.x*.3);}}
+  {bool nf; float R=pull_ring(d/Rh,x,nf), m=smoothstep(.3,1.,w_e), Rd=R*mix(1.,.6,m);   // fewer lit cells zoomed in, so it reads dotted
+   if(Rd>L||nf){L=Rd;col=mix(pull_hue(R*.55+pull_heat.x*.3),pull_rust(R*.5+pull_heat.x*.3),m);}}
   float fx=pull_heat.y;
   if(fx>0.){float fl=fx*1.2*exp(-pow((x-1.1)/(.06+.5*(1.-fx)),2.));if(fl>L){L=fl;col=pull_WHITE;}}
   for(int j=0;j<8;j++){if(float(j)>=pull_n||!late)break;
