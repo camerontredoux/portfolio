@@ -26,10 +26,12 @@ function mk(vs,fs){const p=gl.createProgram();gl.attachShader(p,sh(gl.VERTEX_SHA
 const wpr=mk(WVS,WFS),bpr=mk(WVS,BFS),WU={},BU={};
 for(const n of['w_res','w_scr','w_cam','w_cell','w_t','w_mode','w_fade','w_e','w_depth','w_y0','w_dpr','w_rev','w_ctr','w_lbx','w_cr','w_mono','w_monoS','w_monoV','w_monoB','w_mn','w_mf','w_lay','w_fos','w_fosS','w_atl','w_logo','w_tm'])WU[n]=gl.getUniformLocation(wpr,n);
 for(const n of['b_tex','b_cell'])BU[n]=gl.getUniformLocation(bpr,n);
-const wvao=gl.createVertexArray(),wtex=gl.createTexture(),wfb=gl.createFramebuffer();let wCols=1,wRows=1,wCell=4;
-function makeFBO(){wCell=Math.round(SBD);wCols=Math.ceil(cv.width/wCell);wRows=Math.ceil(cv.height/wCell);
+const wvao=gl.createVertexArray(),wtex=gl.createTexture(),wfb=gl.createFramebuffer();let wCols=1,wRows=1,wCell=4,wCellF=3;
+// Pull draws on a finer grid than the other worlds, so falling into the black hole gives you more pixels, not fewer.
+// The texture is sized for that finer grid; the other worlds use its corner.
+function makeFBO(){wCell=Math.round(SBD);wCellF=Math.max(3,Math.round(wCell*.75));wCols=Math.ceil(cv.width/wCell);wRows=Math.ceil(cv.height/wCell);
   gl.activeTexture(gl.TEXTURE1);gl.bindTexture(gl.TEXTURE_2D,wtex);
-  gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA8,wCols,wRows,0,gl.RGBA,gl.UNSIGNED_BYTE,null);
+  gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA8,Math.ceil(cv.width/wCellF),Math.ceil(cv.height/wCellF),0,gl.RGBA,gl.UNSIGNED_BYTE,null);
   gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.NEAREST);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.NEAREST);
   gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);
   gl.bindFramebuffer(gl.FRAMEBUFFER,wfb);gl.framebufferTexture2D(gl.FRAMEBUFFER,gl.COLOR_ATTACHMENT0,gl.TEXTURE_2D,wtex,0);
@@ -465,7 +467,7 @@ function openFromWorld(i){const mo=MOONS[i];exitWorld();
     else if(mo.st!=='moon'){zoomOut();}
     else if(ISL[i].p===zoom.focus){mz.i=i;mz.target=1;}
     else{zoomTo(ISL[i].p);mz.pending=i;}},1250);}
-const BH_K=PL.length,wul={},pullR=()=>Math.min(W,H)*(NARROW?.2:.17);
+const BH_K=PL.length,wul={},pullR=()=>Math.min(W,H)*(NARROW?.24:.21);
 const bhWorld=()=>wz.k===BH_K?pull:null;
 const bhCtx={gl,el:worldEl,u:n=>n in wul?wul[n]:(wul[n]=gl.getUniformLocation(wpr,n)),
   get W(){return W;},get H(){return H;},get DPR(){return DPR;},get narrow(){return NARROW;},
@@ -1001,10 +1003,11 @@ function frame(now){
   if(wz.k>=0&&curW()==='gallery'&&ew>0)gl.drawArrays(gl.POINTS,galStart,galCount);
   if(wz.k>=0&&curW()!=='gallery'&&ew>0){
     const t=curW(),P=bhWorld()?{x:bhScr.x,y:bhScr.y,r:bhScr.R}:pos[wz.k],L=SL();
-    gl.bindFramebuffer(gl.FRAMEBUFFER,wfb);gl.viewport(0,0,wCols,wRows);gl.disable(gl.BLEND);
+    const wc=t==='pull'?wCellF:wCell,wcx=Math.ceil(cv.width/wc),wcy=Math.ceil(cv.height/wc);
+    gl.bindFramebuffer(gl.FRAMEBUFFER,wfb);gl.viewport(0,0,wcx,wcy);gl.disable(gl.BLEND);
     gl.clearColor(0,0,0,0);gl.clear(gl.COLOR_BUFFER_BIT);
     gl.useProgram(wpr);gl.bindVertexArray(wvao);
-    gl.uniform2f(WU.w_res,wCols,wRows);gl.uniform2f(WU.w_scr,cv.width,cv.height);gl.uniform1f(WU.w_cell,wCell);gl.uniform1f(WU.w_t,now/1000);gl.uniform1f(WU.w_dpr,DPR);
+    gl.uniform2f(WU.w_res,wcx,wcy);gl.uniform2f(WU.w_scr,cv.width,cv.height);gl.uniform1f(WU.w_cell,wc);gl.uniform1f(WU.w_t,now/1000);gl.uniform1f(WU.w_dpr,DPR);
     gl.uniform1f(WU.w_mode,t==='pull'?6:t==='surface'?1:t==='crater'?5:3);gl.uniform1f(WU.w_fade,t==='strata'?wz.z:sstep(.15,.7,ew));   /* Resume sweeps in and out on a straight clock */   /* Resume leaves on a straight clock: pixels start going the instant you press back */gl.uniform1f(WU.w_e,ew);gl.uniform2f(WU.w_cam,camZ,yaw);
     if(t==='crater'){const c=crSite;gl.uniform3f(WU.w_cr,crRep-(CR_MT-.6),Math.max(.12,1-(now/1000-c.t)/90),c.slot);gl.uniform2f(WU.w_cam,crZoom,crYaw);}
     {const cx=t==='crater'?crSite.sx:P.x,cy=t==='crater'?crSite.sy:P.y;revC.x=cx;revC.y=cy;gl.uniform3f(WU.w_ctr,cx*DPR,cy*DPR,P.r*DPR);}{const cx2=(t==='crater'?crSite.sx:P.x)*DPR,cy2=(t==='crater'?crSite.sy:P.y)*DPR,rm=t==='strata'?1e6:Math.max(Math.hypot(cx2,cy2),Math.hypot(cv.width-cx2,cy2),Math.hypot(cx2,cv.height-cy2),Math.hypot(cv.width-cx2,cv.height-cy2));gl.uniform1f(WU.w_rev,ew*rm*1.02);}   /* just covers the screen at full: leaving starts shrinking at once, no dead time */
@@ -1019,7 +1022,7 @@ function frame(now){
     gl.activeTexture(gl.TEXTURE0);gl.bindTexture(gl.TEXTURE_2D,tex);gl.uniform1i(WU.w_atl,0);gl.activeTexture(gl.TEXTURE2);gl.bindTexture(gl.TEXTURE_2D,ltex);gl.uniform1i(WU.w_logo,2);drawGlyphMask();
     gl.drawArrays(gl.TRIANGLES,0,3);
     gl.bindFramebuffer(gl.FRAMEBUFFER,null);gl.viewport(0,0,cv.width,cv.height);
-    gl.useProgram(bpr);gl.activeTexture(gl.TEXTURE1);gl.bindTexture(gl.TEXTURE_2D,wtex);gl.uniform1i(BU.b_tex,1);gl.uniform1f(BU.b_cell,wCell);
+    gl.useProgram(bpr);gl.activeTexture(gl.TEXTURE1);gl.bindTexture(gl.TEXTURE_2D,wtex);gl.uniform1i(BU.b_tex,1);gl.uniform1f(BU.b_cell,wc);
     gl.drawArrays(gl.TRIANGLES,0,3);
     gl.activeTexture(gl.TEXTURE0);gl.bindTexture(gl.TEXTURE_2D,tex);gl.enable(gl.BLEND);gl.useProgram(pr);
   }

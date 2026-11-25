@@ -42,6 +42,13 @@ vec2 bhBend(vec2 t,float r,float asp,float gro,float W,float lens){
 float bhGap(vec2 t,float r,float asp){
   return smoothstep(.3,.85,abs(t.y)/max(r,1e-3));
 }
+// Zoomed in, everything goes dark either side of the photon ring, so the arc over the top and the loop underneath
+// stand apart as they do in the bz view. Pull dims its background band by this too. q is the tilted point.
+float bhRingDark(vec2 q,float r,float asp,float z){
+  float tl=.28; vec2 u=vec2(cos(tl)*q.x-sin(tl)*q.y,sin(tl)*q.x+cos(tl)*q.y);
+  float dr=abs(r-1.1);
+  return 1.-z*bhGap(u,r,asp)*.92*smoothstep(.05,.08,dr)*(1.-smoothstep(.22,.32,dr))*smoothstep(.88,.96,r);
+}
 const float BH_LENS=.6;   // how far the bz view bends its disc; Pull starts here and goes to 1
 // The one black hole, for the bz view (z=0) and Pull (z=1). Zooming in grows the disc outward from the hole,
 // flattens it, deepens the lens bend and the arch, brings in the underside below the shadow and finer detail, and
@@ -59,7 +66,10 @@ float bhDiscZ(vec2 q,vec3 spin,float t,float w,bool big,float z){
     float rb=1.25+(r-1.1)*1.75/(W*.35);
     I=max(I,bhTex(rb,rb,-atan(cy,cx),spin,t,z)*smoothstep(.25,.8,cy/r)*exp(-pow(max(r-1.1,0.)/(.28*W),2.))*.6*z);
   }
-  float G=bhGlow(0.,r,rd,t,w,big,1.-z)*bhGap(vec2(cx,cy),r,asp);      // photon ring and glow: arcs over and under, fading by the sides
+  float pg=bhGap(vec2(cx,cy),r,asp);
+  I*=bhRingDark(q,r,asp,z);
+  float ring=z*1.8*exp(-pow((r-1.1)/.045,2.))*(1.+.25*sin(t*4.));    // Pull keeps the photon ring, brighter, as its soft glow fades
+  float G=max(bhGlow(0.,r,rd,t,w,big,1.-z),ring)*pg;                  // photon ring and glow: arcs over and under, fading by the sides
   return max(I<.08?0.:I,G);
 }
 // photon ring, glow and shockwave over the disc's light I; pr scales the ring and glow, which Pull draws its own way
@@ -304,7 +314,7 @@ void main(){
       if(I>0.&&h(vec3(a.xy*53.,floor(u_t*18.)))<w*.3) show=false;               // shimmer
     }
     p=u_bh.xy+q*u_bh.z;
-    if(big){ if(h(vec3(q*31.,5.))>=u_bz.z) show=false; size=max(min(u_bdot*u_bh.z/u_rt,u_bdot*1.6),.5);   /* diving into Pull: the dots spread apart but stay fine instead of turning into blocks */ alpha=1.-u_mv2.x; }
+    if(big){ if(h(vec3(q*31.,5.))>=u_bz.z) show=false; size=u_bdot*mix(1.,.67,smoothstep(1.,2.,u_bh.z/u_rt));   /* diving into Pull: the dots spread apart and get finer, down to Pull's finer grid */ alpha=1.-u_mv2.x; }
     else { if(h(vec3(q*31.,6.))<u_bz.z) show=false; size=min(u_pdot+(u_bz.y-1.)*u_spp,64.); alpha=max(1.-u_e,u_bz.x); }
     {float c=clamp(I*.72+u_bh.w*.06,0.,1.);col=c<.5?mix(vec3(.95,.34,.08),vec3(1.,.66,.24),c*2.):mix(vec3(1.,.66,.24),vec3(1.,.97,.86),c*2.-1.);}
   } else if(kind==12){                           // asteroid belt between the 4th and 5th orbits

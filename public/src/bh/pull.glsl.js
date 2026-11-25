@@ -51,6 +51,7 @@ vec4 pull(vec2 cell){
     L*=smoothstep(.35,1.,w_e)*mix(.25,1.,smoothstep(1.8,3.5,x));
     col=pull_hue(L*.45+pull_heat.x*.3)*.62;   // the reference reads dim red-brown (~#6E3620), not bright orange
   }
+  L*=bhRingDark(d/Rh,x,.2,smoothstep(.3,1.,w_e));
   {bool nf; float R=pull_ring(d/Rh,x,nf), m=smoothstep(.3,1.,w_e), Rd=R*mix(1.,.6,m);   // fewer lit cells zoomed in, so it reads dotted
    if(Rd>L||nf){L=Rd;col=mix(pull_hue(R*.55+pull_heat.x*.3),pull_rust(R*.5+pull_heat.x*.3),m);}}
   float fx=pull_heat.y;

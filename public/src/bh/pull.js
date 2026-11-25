@@ -114,7 +114,7 @@ export default {
   hint:S.hint,
   enter(ctx){
     C=ctx;got=load();Q=[];inkKey='';grab=null;tried=false;out=null;lastF=null;openAt=-1;flareAt=-99;flashed=false;lines=[];
-    sc=1-.55*got/N;heat=got/N;
+    sc=1-.2*got/N;heat=got/N;
     const wh=ctx.el.querySelector('.wh');if(wh&&got>=N)wh.textContent=S.hintEnd;
     read=div('pull-r');
     read.innerHTML='<div class="h"></div><div class="b"></div><div class="o"></div><label class="in"><span>&gt; </span><span class="v"></span><span class="cur"></span>'+
@@ -135,7 +135,7 @@ export default {
     const t=ctx.t,{x:px,y:py,down}=ctx.pointer,k=ctx.DPR,gl=ctx.gl;
     if(!down){grab=null;tried=false;}
     if(openAt<0&&ctx.e>.95){openAt=t;nextAt=t+1.2;ambAt=t+3;}
-    const sm=reduce?1:Math.min(1,dt*2);sc+=(1-.55*got/N-sc)*sm;heat+=(got/N-heat)*sm;
+    const sm=reduce?1:Math.min(1,dt*2);sc+=(1-.2*got/N-sc)*sm;heat+=(got/N-heat)*sm;
     const G=geometry(ctx);
     if(openAt>=0&&!ctx.leaving&&got<N){if(t>=nextAt&&!Q.some(q=>q.sm))spawn(t,true);
       if(t>=ambAt&&Q.length<MAXQ-1){spawn(t,false);ambAt=t+4-2*got/N+2*Math.random();}}
