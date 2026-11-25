@@ -42,6 +42,7 @@ vec2 bhBend(vec2 t,float r,float asp,float gro,float W,float lens){
 float bhGap(vec2 t,float r,float asp){
   return smoothstep(.3,.85,abs(t.y)/max(r,1e-3));
 }
+float bhWave(float a,float t){return pow(.5+.5*cos(a-t*1.1),8.);}   // one bright crest going round at the disc's inner speed
 // Zoomed in, everything goes dark either side of the photon ring, so the arc over the top and the loop underneath
 // stand apart as they do in the bz view. Pull dims its background band by this too. q is the tilted point.
 float bhRingDark(vec2 q,float r,float asp,float z){
@@ -68,7 +69,10 @@ float bhDiscZ(vec2 q,vec3 spin,float t,float w,bool big,float z){
   }
   float pg=bhGap(vec2(cx,cy),r,asp);
   I*=bhRingDark(q,r,asp,z);
-  float ring=z*1.8*exp(-pow((r-1.1)/.045,2.))*(1.+.25*sin(t*4.));    // Pull keeps the photon ring, brighter, as its soft glow fades
+  // Zoomed in, a bright pulse travels round with the disc's spin: along the photon ring over the top and under the
+  // bottom, and along the disc's inner edge down the sides, where the ring fades out
+  if(!(d.y<0.&&r<1.03)) I=max(I,z*(1.-pg)*1.1*bhWave(th,t)*exp(-pow((rd-1.33)/.08,2.)));
+  float ring=z*1.8*exp(-pow((r-1.1)/.045,2.))*(.65+.9*bhWave(atan(cy,cx),t));   // Pull keeps the photon ring, brighter, as its soft glow fades
   float G=max(bhGlow(0.,r,rd,t,w,big,1.-z),ring)*pg;                  // photon ring and glow: arcs over and under, fading by the sides
   return max(I<.08?0.:I,G);
 }
