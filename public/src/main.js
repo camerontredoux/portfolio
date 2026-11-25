@@ -680,7 +680,7 @@ function frame(now){
   {const want=factsK>=0&&NARROW?Math.min(Math.max(0,CY-RB-96),Math.max(0,RB+28+factsEl.offsetHeight-(H-48-CY))):0;fShift+=(want-fShift)*Math.min(1,dt*6);}
   bz.z=Math.min(1,Math.max(0,bz.z+(bz.target?1:-1)*dt/1.2));const eB=F<0?ease(bz.z):0;
   // black hole parked off the outer orbit, lower right (system space, before the camera)
-  const BH0=BH_CENTER?{x:CX,y:CY,R:Math.max(12,30*S)}:(()=>{const Rh=Math.max(8,19*S);let bx=CX+660*S*.96,by=CY+265*S*1.55;bx=Math.min(W-Rh*3.4,bx);by=Math.min(H-Rh*3-46,Math.max(70,by));return {x:bx,y:by,R:Rh};})();
+  const BH0=BH_CENTER?{x:CX,y:CY,R:Math.max(11,27*S)}:(()=>{const Rh=Math.max(8,19*S);let bx=CX+660*S*.96,by=CY+265*S*1.55;bx=Math.min(W-Rh*3.4,bx);by=Math.min(H-Rh*3-46,Math.max(70,by));return {x:bx,y:by,R:Rh};})();
 
   // planet positions before the camera
   const P0=PL.map((pl,k)=>{

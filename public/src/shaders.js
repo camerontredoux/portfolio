@@ -6,8 +6,10 @@ float nz(vec3 x){vec3 i=floor(x),f=fract(x);f=f*f*(3.-2.*f);
              mix(mix(h(i+vec3(0,0,1)),h(i+vec3(1,0,1)),f.x),mix(h(i+vec3(0,1,1)),h(i+vec3(1,1,1)),f.x),f.y),f.z);}
 // black hole, seen from slightly above: a tilted, swirling accretion disk; its far half hides behind the dark horizon, its near half crosses in front
 // the disc's light at disc radius rd (rg spaces the grooves) and angle th; Pull also samples it at the lensed arches
+const float BH_OUTER=3., BH_LEFT_TAPER=.25;
+float bhOuterRadius(float th,float z){return BH_OUTER-(1.-z)*BH_LEFT_TAPER*(.5-.5*cos(th));}
 float bhTex(float rd,float rg,float th,vec3 spin,float t,float z){
-  float s=spin.y, ro=3.;
+  float s=spin.y, ro=bhOuterRadius(th,z);
   if(rd<=1.25||rd>=ro) return 0.;
   float ph=th-(t*1.7+spin.x*2.2)/pow(rd,1.5);                   // inner rings turn faster; dragging spins it up
   float sw=nz(vec3(cos(ph)*rd*1.8,sin(ph)*rd*1.8,rd*2.5))*.6+nz(vec3(cos(ph*2.)*rd*4.,sin(ph*2.)*rd*4.,1.))*.4;
