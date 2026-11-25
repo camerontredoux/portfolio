@@ -1,45 +1,126 @@
-// DRAFT STORY: the first draft. The 2022 site fell into the black hole the day it was replaced, and from its side only minutes have passed.
-// The fragments' first letters spell the answer to the final question, so keep the acrostic when editing them.
 const pad=n=>String(n).padStart(2,'0');
-const SOLVED=['still running.','yes. that is what i am. i never stopped.','thank you for pulling me out.'];
 
-/** @typedef {{got:number,N:number,page:number,fragments:string[]}} State `fragments` holds only the `got` caught so far. */
-/** @type {{hint:string,hintSpin:string,hintPull:string,hintEnd:string,label:string,card:string,fragments:string[],page:string[],final:string[],
- *   commands:Record<string,string[]|((s:State,args:string[])=>string[])>,unknown:(cmd:string)=>string[]}} */
+/** @typedef {{h:string,at:string,lines:string[]}} Record `at` is ship time, "day hh:mm", used to sort `ls`. A `{word}` in a line stays scrambled until the player greps that word. */
+/** @typedef {{id:string,first:string,last:string,role:string,fate:string}} Crew */
 export default {
-  hint:'drag the smear outward to pull it free',
-  hintSpin:'spin the hole to tighten the smear',
-  hintPull:'now pull it free',
-  hintEnd:'the hole has nothing left to radiate',
-  label:'radiated',
-  card:'frag',
-  fragments:[
-    'serving index.html. vite says ready in 312ms. it is 23:56 on july 14, 2022.',
-    'the CNAME just landed. i have a name now, i think.',
-    'i say i am a cs major and a software intern. rust and typescript, mostly.',
-    'last deploy added resume.pdf. 146786 bytes. i am proud of that one.',
-    'lost the CNAME on september 1st. got it back, lost it again. names do not stick.',
-    'requests stopped coming a while ago. it is very quiet. is the server up?',
-    'uptime says four minutes. the light leaking in from outside says otherwise.',
-    'nov 23, 2026, says the clock outside. that cannot be right. it has been minutes.',
-    'new site went up that day. it draws planets. it put me in the black hole.',
-    'it is warm here. time is thick near the edge. years out there, minutes in here.',
-    'nothing that falls in is lost. it leaks back out, folded. that is what you are catching.',
-    'go on, answer me. read my first letters, top to bottom, and type them.',
+  hint:'drag a smear outward to pull it free',
+  hintEnd:'that\'s everything the hole had. who ended up where?',
+  label:'recovered',
+  firstCard:'there\'s a terminal under each record. type help',
+  /** @type {Record[]} */
+  records:[
+    {h:'#ops',at:'41 03:12',lines:[
+      'dana: anyone else getting the clock drift warning',
+      'dana: nav says we\'re 40s behind ground',
+      'lena: it\'s the low pass. relativity. go back to sleep',
+      'dana: it says 40 {minutes} now']},
+    {h:'crew list',at:'01 09:00',list:true,lines:[
+      'l. reyes    captain',
+      'd. ruiz     pilot',
+      'm. okafor   engineer',
+      's. iqbal    science',
+      'pod-1       2 seats']},
+    {h:'MAINT-114',at:'12 14:30',lines:[
+      '{thruster} 3 cuts out over 60% load',
+      'opened by d.ruiz. status: wontfix',
+      'mark: we never burn on 3. ask me again if we ever need it']},
+    {h:'nav log',at:'41 02:58',lines:[
+      '02:58:10 low pass burn start',
+      '02:58:40 thr 3 fault. thrust uneven',
+      '02:58:41 attitude lost',
+      '02:59:30 orbit decaying',
+      '02:59:30 est. {horizon} crossing 03:51 ship time']},
+    {h:'#science',at:'36 19:05',lines:[
+      'sam: the disc data from up here is mush. we\'re too far out',
+      'sam: one low pass. ninety minutes. i\'ll cook',
+      'lena: you said that last time',
+      'sam: and was it good or not',
+      'lena: fine. one pass. mark checks the {engine} first']},
+    {h:'#random',at:'20 22:41',lines:[
+      'dana: who keeps eating my crackers',
+      'mark: sam',
+      'sam: it\'s for science',
+      'lena: it\'s theft sam']},
+    {h:'#ops',at:'41 03:20',lines:[
+      'mark: going aft. i can run 3 by hand if i hold the {valve} open',
+      'lena: for how long',
+      'mark: long enough',
+      'dana: mark',
+      'mark: long enough dana']},
+    {h:'pre-burn checks',at:'37 08:15',lines:[
+      'main engine ok',
+      'thrusters 1 2 4 ok',
+      'thruster 3 skipped, see MAINT-114',
+      '{pod} battery 61%, charging',
+      'checked by m.okafor']},
+    {h:'#ops',at:'41 03:31',lines:[
+      'lena: dana, sam. pod. now',
+      'sam: i\'m not done',
+      'lena: you\'re done',
+      'dana: who\'s flying',
+      'lena: i\'ve got the {helm}. go']},
+    {h:'comms log',at:'41 03:44',lines:[
+      '03:44:02 {uplink} open, aimed out',
+      '03:44:05 queued 3.1 TB from s.{iqbal}',
+      '03:44:06 send time 6h 12m',
+      '03:44:06 send will not finish before crossing']},
+    {h:'pod-1',at:'41 03:47',lines:[
+      '03:47:30 hatch sealed',
+      '03:47:31 seats taken: {one} of two',
+      '03:47:40 separation clean',
+      '03:48:00 beacon on']},
+    {h:'engine bay',at:'41 03:49',lines:[
+      '03:49:10 thr 3 manual. operator m.{okafor}',
+      '03:49:10 thr 3 at 74%',
+      '03:50:55 thr 3 at 74%',
+      '03:51:00 thr 3 at 74%']},
+    {h:'#ops',at:'41 03:50',lines:[
+      'lena: pod\'s clear. nice work mark',
+      'lena: sam where are you',
+      'sam: {comms}. 41% sent',
+      'lena: ok',
+      'lena: ok. stay there']},
+    {h:'outbox',at:'41 03:48',lines:[
+      'voicemail, pod-1 to ana ruiz. relayed through the ship',
+      'ana it\'s me. i\'m fine. i\'m in the pod',
+      'sam was right behind me. he stopped at the {hatch}',
+      'said someone has to send it. then he shut it',
+      'tell mom i wasn\'t scared. i was. tell her anyway']},
   ],
-  page:['page time. half of me is out there now.','i can hear you. type help.'],
-  final:['that was all of me.','one question before i go quiet: what am i? two words.'],
-  commands:{
-    help:['ls        list what has leaked out','cat <n>   read a fragment','log       my commit history','date      the time in here','uptime    how long i have been up','whoami    who i was','when you know what i am, type it.'],
-    ls:s=>s.got?[s.fragments.map((_,i)=>`frag.${pad(i+1)}`).join('  '),`${s.N-s.got} still inside`]:['nothing has leaked out yet'],
-    cat:(s,[n])=>{const i=parseInt(n,10)-1;return i>=0&&i<s.got?[s.fragments[i]]:n?[`cat: frag.${pad(n)}: still inside`]:['usage: cat <n>'];},
-    log:['e860687 2022-07-14 deploy','7ec6d0d 2022-07-15 deploy','1a77811 2022-08-09 deploy','dac4e33 2022-09-01 delete CNAME','a1c322e 2026-11-23 replace the site with the dithered solar system','that last one is from after i fell. how do i know it?'],
-    date:['thu jul 14 23:59:41 2022','the clock outside disagrees.'],
-    uptime:['up 4 min, 0 users'],
-    whoami:s=>s.got>=s.N?['the first draft. one html file, one stylesheet, one script.','what else am i? you have every letter now.']:['the first draft. partly.'],
-    still:(s,[w])=>w!=='running'?['still what?']:s.got>=s.N?SOLVED:['not yet. i am not all out.'],
-    stillrunning:s=>s.got>=s.N?SOLVED:['not yet. i am not all out.'],
-    reset:['folding everything back in.'],
+  final:{h:'nav log',at:'41 03:51',lines:[
+    '03:51:00 crossing',
+    '03:51:00 crossing',
+    '03:51:00 crossing',
+    'uplink 41% sent. still sending']},
+  /** @type {Crew[]} */
+  crew:[
+    {id:'reyes',first:'lena',last:'reyes',role:'captain',fate:'helm'},
+    {id:'ruiz',first:'dana',last:'ruiz',role:'pilot',fate:'pod'},
+    {id:'okafor',first:'mark',last:'okafor',role:'engineer',fate:'engine'},
+    {id:'iqbal',first:'sam',last:'iqbal',role:'science',fate:'comms'},
+  ],
+  places:['helm','pod','engine','comms','airlock','bunk','lab'],
+  say:{
+    help:['ls                   records you have, by ship time','cat <n>              open record n','grep <word>          search every record. a burned word you name comes back',
+      'who                  the crew, and where you think they ended up','fate <name> <place>  say where someone ended up','places               where they could be','clear                clear this screen'],
+    lsNone:['nothing yet. pull something out'],
+    ls:(n,h,at)=>`${pad(n)}  day ${at}  ${h}`,
+    catUsage:['usage: cat <n>'],
+    catNone:n=>[`cat: ${n}: you haven't pulled that one`],
+    grepUsage:['usage: grep <word>'],
+    grepNone:w=>[`no record mentions "${w}"`],
+    grepHit:(n,h)=>`${pad(n)}  ${h}`,
+    grepInside:(k,soon)=>`${k} more still inside${soon?". the next one out will have it":""}`,
+    grepBurned:w=>`"${w}" is readable now`,
+    whoNone:['no crew list yet. keep pulling'],
+    who:(c,guess,locked)=>`${c.first[0]}. ${c.last.padEnd(8)} ${c.role.padEnd(9)} ${guess?guess+(locked?'  locked':''):'?'}`,
+    fateUsage:['usage: fate <name> <place>. try: places'],
+    fateWho:n=>[`no one called ${n} on the crew list`],
+    fatePlace:p=>[`${p} isn't a place on the ship. try: places`],
+    fateLocked:c=>[`${c.first} is already locked in`],
+    fateNoted:(c,p)=>[`${c.first} ${c.last}: ${p}. noted`],
+    fatePair:cs=>[`two of your guesses are right: ${cs.map(c=>c.first).join(' and ')}. locked in`],
+    fateDone:['that\'s all four.','one more record came loose.'],
+    unknown:cmd=>[`${cmd}: command not found. try help`],
   },
-  unknown:cmd=>[`${cmd}: command not found. this build is from 2022.`],
 };
