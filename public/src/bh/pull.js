@@ -57,10 +57,11 @@ function step(t,dt){
   Q=Q.filter(q=>q.al>0);}
 function edge(ctx,G,a){const c=Math.cos(a),s=Math.sin(a);
   return Math.min(c>0?(ctx.W-G.cx)/c:c<0?-G.cx/c:1e9,s>0?(ctx.H-G.cy)/s:s<0?-G.cy/s:1e9);}
-function resistedStretch(ctx,G,a,base,h,p){const L=Math.max(24,Math.min(G.D*.6,edge(ctx,G,a)-base-h-EDGE));
-  return L*(1-Math.exp(-2*p))/(1-Math.exp(-2));}
+function resistedStretch(ctx,G,a,base,h,p){const L=Math.max(16,Math.min(G.Rh*.3,edge(ctx,G,a)-base-h-EDGE));
+  return L*(1-Math.exp(-3*p))/(1-Math.exp(-3));}
 function smear(ctx,G,q){const p=Math.min(1,q.p),k=ease(p),g=reduce?1:ease(clamp((ctx.t-q.t0-PAIR)/.5)),a=q.a+q.da;
-  const h=G.Rh*(.15+.17*k),base=G.Rh*SMR+h,R=base+resistedStretch(ctx,G,a,base,h,p)+G.Rh*(.07*tug(ctx.t,q.s)+.05*q.hv)*(1-k);
+  const h0=G.Rh*(.15+.09*k),base=G.Rh*SMR+h0,st=resistedStretch(ctx,G,a,base,h0,p)/2,h=h0+st;
+  const R=base+st+G.Rh*(.07*tug(ctx.t,q.s)+.05*q.hv)*(1-k);
   return {a,R,h,w:G.Rh*(1-.15*k)*g/R,x:G.cx+Math.cos(a)*R,y:G.cy+Math.sin(a)*R};}
 function hit(ctx,G,x,y,tol){const q=waiting(ctx.t);if(!q)return null;
   const M=smear(ctx,G,q),along=(Math.abs(wrap(Math.atan2(y-G.cy,x-G.cx)-M.a))-M.w)*M.R,across=Math.abs(Math.hypot(x-G.cx,y-G.cy)-M.R)-M.h;
