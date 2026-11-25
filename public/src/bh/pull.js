@@ -1,13 +1,13 @@
 import S from './story.js';
 const N=S.fragments.length,PAGE=Math.ceil(N/2),KEY='pull.page',MAXQ=4;
-const RISE=1.1,FALL=.65,FADE=.25,TYPE=16,PAIR=.6,AMB=1.4,RING=1.1,ESC=2.6,SMR=1.16,DECODE=1.5,FLARE=1.6,LOG=8;
+const RISE=1.1,FALL=.65,FADE=.25,TYPE=16,PAIR=.6,AMB=1.4,RING=1.1,ESC=2.6,SMR=1.16,DECODE=1.5,FLARE=1.6,LOG=8,KEEP=.45,GAP=1.2;
 const GLY='#%&*+=<>/\\|[]{}?!$^~:;01';
 const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
 let mouse=matchMedia('(hover: hover)').matches;
 addEventListener('pointermove',e=>{mouse=e.pointerType==='mouse';});
 const QA=new Float32Array(MAXQ*8),QB=new Float32Array(MAXQ*8);
 const INK=document.createElement('canvas');INK.width=512;INK.height=80;
-let C=null,got=0,Q=[],grab=null,tried=false,out=null,lastF=null,openAt=-1,nextAt=0,ambAt=0,tex=null,inkKey='',ghosted=reduce,pulled=false,cue=1,sc=1,heat=0,flareAt=-99,flashed=false,seed=0;
+let C=null,got=0,Q=[],grab=null,tried=false,out=null,lastF=null,openAt=-1,nextAt=0,ambAt=0,tex=null,inkKey='',ghosted=reduce,pulled=false,cue=1,sc=1,heat=0,flareAt=-99,flashed=false,seed=0,lastA=-Math.PI/2;
 let read,head,body,log,echo,inp,count,strip,lines=[],lastEnd=0;
 
 const pad=n=>String(n).padStart(2,'0');
@@ -28,8 +28,10 @@ function geometry(ctx){
   return {cx,cy,o,Rh:R*(1+(sc-1)*o),D:Math.min(200,Math.max(110,m*.22))};
 }
 
+// Each smear comes out somewhere new round the ring, at least GAP radians from the last one.
 function spawn(t,sm){const s=Math.random()*1e3,side=hash(s,1)<.5?-1:1;
-  Q.push({s,t0:t,a:sm?-Math.PI/2+(hash(s,2)-.5)*.4:-.28+side*Math.PI/2+(hash(s,2)-.5)*1.6,r:RING,p:0,da:0,hv:0,gh:-1,al:1,sm});}
+  if(sm)lastA=wrap(lastA+GAP+hash(s,2)*(2*Math.PI-2*GAP));
+  Q.push({s,t0:t,a:sm?lastA:-.28+side*Math.PI/2+(hash(s,2)-.5)*1.6,r:RING,p:0,da:0,hv:0,gh:-1,al:1,sm});}
 function step(t,dt){
   for(const q of Q){if(grab?.q===q)continue;const age=t-q.t0,f=reduce?1:1-Math.exp(-dt*6);
     if(ghosted||q.gh<0)q.p-=q.p*f;q.da-=q.da*f;
@@ -47,30 +49,45 @@ function ink(gl,t){const tk=reduce?0:Math.floor(t*6),f=S.fragments[got],key=got+
   const g=INK.getContext('2d');g.fillStyle='#222';g.fillRect(0,0,INK.width,INK.height);g.fillStyle='#fff';
   g.font='800 78px ui-monospace,Menlo,monospace';g.textBaseline='middle';g.save();g.scale(INK.width/g.measureText(s).width,1);g.fillText(s,0,INK.height/2);g.restore();
   gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,INK);}
-function catchQ(ctx,G,q){const P=smear(ctx,G,q);Q.splice(Q.indexOf(q),1);grab=null;pulled=true;ghosted=true;
-  got++;save();nextAt=ctx.t+2.5-1.5*got/N;tiles();open(ctx,got===PAGE?'page':got-1,P.x,P.y);
+// A smear pulled free becomes a card that stays on the pointer and grows the further you drag it. Let go once it's
+// at least KEEP of full size and it's caught, where you let go; let go sooner and it falls back into the hole.
+function detach(ctx,G,q,x,y){const P=smear(ctx,G,q);Q.splice(Q.indexOf(q),1);pulled=true;ghosted=true;grab={card:true};
+  out={w:got+1===PAGE?'page':got,ph:'drag',q,t0:ctx.t,sx:x,sy:y,dx:x,dy:y,offx:P.x-x,offy:P.y-y,px:P.x,py:P.y,ox:0,oy:0,k:.15,k0:.15,to:null};
+  got++;fill(ctx);got--;}   // filled now so the card has its full height while held; land() fills it again to type it out
+function land(ctx,here){got++;save();nextAt=ctx.t+2.5-1.5*got/N;tiles();
+  Object.assign(out,{ph:'rise',t0:ctx.t,x0:out.px,y0:out.py,k0:out.k,ax:here?out.px:null,ay:here?out.py:null,q:null});grab=null;fill(ctx);
   const wh=ctx.el.querySelector('.wh');if(wh&&got>=N)wh.textContent=S.hintEnd;}
+function slip(ctx){const q=out.q;q.p=0;q.da=0;Q.push(q);const M=smear(ctx,geometry(ctx),q);
+  Object.assign(out,{ph:'fall',t0:ctx.t,k0:out.k,fx:out.px,fy:out.py,to:{x:M.x,y:M.y},q:null});grab=null;}
+function letGo(ctx){if(out?.ph==='drag'){if(out.k>=KEEP)land(ctx,true);else slip(ctx);}}
+function catchQ(ctx,G,q){detach(ctx,G,q,0,0);out.k=0;land(ctx,false);}
 function reset(){got=0;save();Q=[];nextAt=C.t+2;inkKey='';flareAt=-99;flashed=false;strip.classList.remove('fl');tiles();
   const wh=C.el.querySelector('.wh');if(wh)wh.textContent=S.hint;}
 
-function open(ctx,w,x,y){if(out&&out.ph!=='fall'&&out.w===w)return;
-  out={w,ph:'rise',t0:ctx.t,x0:x,y0:y,ox:0,oy:0,k:0,k0:1,to:null};fill(ctx);}
+function open(ctx,w,x,y){if(out&&out.ph!=='fall'&&out.w===w||out?.ph==='drag')return;
+  out={w,ph:'rise',t0:ctx.t,x0:x,y0:y,ox:0,oy:0,k:0,k0:0,to:null};fill(ctx);}
 function drop(ctx){if(!out||out.ph==='fall')return;
   const b=typeof out.w==='number'?strip.children[out.w]:null,r=(b||count).getBoundingClientRect();
-  out.to={x:r.left+r.width/2,y:r.top+r.height/2};out.k0=out.k;out.ph='fall';out.t0=ctx.t;inp.blur();}
+  out.to={x:r.left+r.width/2,y:r.top+r.height/2};out.fx=out.px;out.fy=out.py;out.k0=out.k;out.ph='fall';out.t0=ctx.t;inp.blur();}
 function rect(ctx){const w=Math.min(340,ctx.W-32),h=read.offsetHeight,vv=visualViewport,{x:cx,y:cy,R}=ctx.hole;
   const bot=Math.max(12,Math.min(ctx.H-124,vv?vv.offsetTop+vv.height-12:ctx.H)-h),sx=cx+R*1.35;
+  if(out?.ax!=null)return {x:clamp(out.ax-w/2,12,Math.max(12,ctx.W-w-12)),y:clamp(out.ay-h/2,12,bot),w,h};
   if(ctx.W-sx-20>=w)return {x:sx,y:clamp(cy-h/2,12,bot),w,h};
   return {x:(ctx.W-w)/2,y:clamp(cy+R*1.2,12,bot),w,h};}
+const box=(R,k)=>({hw:2+(R.w/2-2)*ease(clamp(k/.55)),hh:2+(R.h/2-2)*ease(clamp((k-.45)/.55))});
 function morph(ctx){
-  const x=clamp((ctx.t-out.t0)/(reduce?FADE:out.ph==='rise'?RISE:FALL));let k=1,fade=1;
-  if(out.ph==='rise'){if(reduce)fade=x;else k=1-(1-x)**3;
+  if(out.ph==='drag'){const f=Math.exp(-(ctx.t-out.t0)*6),x=out.dx+out.offx*f,y=out.dy+out.offy*f,R=rect(ctx);   // slides under the pointer
+    const k=out.k=clamp(.15+.85*Math.hypot(out.dx-out.sx,out.dy-out.sy)/(geometry(ctx).D*1.3));
+    out.px=x;out.py=y;return {R,fade:1,k,x,y,...box(R,k)};}
+  const x=clamp((ctx.t-out.t0)/(reduce?FADE:out.ph==='rise'?RISE:FALL));let k=1,fade=1,m=1;
+  if(out.ph==='rise'){if(reduce)fade=x;else{m=1-(1-x)**3;k=out.k0+(1-out.k0)*m;}
     if(x>=1){out.ph='held';out.t0=ctx.t;if(mouse)inp.focus({preventScroll:true});}}
   else if(out.ph==='fall'){if(reduce){fade=1-x;k=out.k0;}else k=out.k0*(1-x*x);if(x>=1){out=null;return null;}}
   out.k=k;
-  const R=rect(ctx),A=out.ph==='fall'?out.to:{x:out.x0,y:out.y0},e=ease(k);
-  const tx=R.x+R.w/2+out.ox,ty=R.y+R.h/2+out.oy,kx=ease(clamp(k/.55)),ky=ease(clamp((k-.45)/.55));
-  return {R,fade,k,x:A.x+(tx-A.x)*e,y:A.y+(ty-A.y)*e,hw:2+(R.w/2-2)*kx,hh:2+(R.h/2-2)*ky};
+  const R=rect(ctx),tx=R.x+R.w/2+out.ox,ty=R.y+R.h/2+out.oy;let x2,y2;
+  if(out.ph==='fall'){const e=ease(out.k0>0?k/out.k0:0);x2=out.to.x+(out.fx-out.to.x)*e;y2=out.to.y+(out.fy-out.to.y)*e;}
+  else{const e=out.ph==='held'||reduce?1:m;x2=out.x0+(tx-out.x0)*e;y2=out.y0+(ty-out.y0)*e;}
+  out.px=x2;out.py=y2;return {R,fade,k,x:x2,y:y2,...box(R,k)};
 }
 
 function fill(ctx){const t0=ctx.t+(reduce?FADE:RISE),w=out.w;
@@ -130,14 +147,14 @@ export default {
       gl.activeTexture(gl.TEXTURE0);}
     ctx.el.append(read,count,strip);tiles();
   },
-  leave(){grab=null;inp?.blur();},
+  leave(){if(out?.ph==='drag')out=null;grab=null;inp?.blur();},
   frame(ctx,dt){
     const t=ctx.t,{x:px,y:py,down}=ctx.pointer,k=ctx.DPR,gl=ctx.gl;
-    if(!down){grab=null;tried=false;}
+    if(!down){letGo(ctx);grab=null;tried=false;}
     if(openAt<0&&ctx.e>.95){openAt=t;nextAt=t+1.2;ambAt=t+3;}
     const sm=reduce?1:Math.min(1,dt*2);sc+=(1-.2*got/N-sc)*sm;heat+=(got/N-heat)*sm;
     const G=geometry(ctx);
-    if(openAt>=0&&!ctx.leaving&&got<N){if(t>=nextAt&&!Q.some(q=>q.sm))spawn(t,true);
+    if(openAt>=0&&!ctx.leaving&&got<N){if(t>=nextAt&&!Q.some(q=>q.sm)&&out?.ph!=='drag')spawn(t,true);
       if(t>=ambAt&&Q.length<MAXQ-1){spawn(t,false);ambAt=t+4-2*got/N+2*Math.random();}}
     step(t,dt);
     if(!ghosted&&openAt>=0&&!out){const q=waiting(t-.4);
@@ -176,21 +193,26 @@ export default {
     if(!flashed&&flareAt>0&&t>=flareAt){flashed=true;strip.classList.add('fl');}
     if(!ctx.leaving)document.getElementById('c').style.cursor=grab?'grabbing':hv||(held&&inside(F,px,py))?'grab':'default';
   },
-  drag(ctx){const G=geometry(ctx),{x,y}=ctx.pointer,r=Math.hypot(x-G.cx,y-G.cy),t=Math.atan2(y-G.cy,x-G.cx);
+  drag(ctx){const G=geometry(ctx),{x,y}=ctx.pointer,t=Math.atan2(y-G.cy,x-G.cx);
     if(!grab&&!tried&&!ctx.leaving){tried=true;ghosted=true;
       if(out?.ph==='held'&&lastF&&inside(lastF,x,y))grab={plate:true,x0:x,y0:y,ox:out.ox,oy:out.oy};
-      else{const q=hit(ctx,G,x,y,40);if(q)grab={q,r0:r,t0:t,p0:q.p,da0:q.da};}}
+      else{const q=hit(ctx,G,x,y,40);if(q)grab={q,x0:x,y0:y,t0:t,p0:q.p,da0:q.da};}}
     if(!grab)return false;
+    if(grab.card){if(out?.ph==='drag'){out.dx=x;out.dy=y;}return true;}
     if(grab.plate){if(out?.ph!=='held'){grab=null;return true;}out.ox=grab.ox+(x-grab.x0)*.8;out.oy=grab.oy+(y-grab.y0)*.8;return true;}
     const q=grab.q;if(!Q.includes(q)){grab=null;return true;}
-    q.p=Math.max(0,grab.p0+(r-grab.r0)/G.D);q.da=grab.da0+wrap(t-grab.t0)*.7;if(q.p>=1)catchQ(ctx,G,q);return true;},
-  release(ctx){if(grab?.plate&&out&&Math.hypot(out.ox,out.oy)>ctx.hole.R*.4)drop(ctx);
+    // pull in any direction that isn't back into the hole; sideways only swings the smear a little, never round the ring
+    const dx=x-grab.x0,dy=y-grab.y0,d=Math.hypot(dx,dy),a=q.a+grab.da0,c=d?(dx*Math.cos(a)+dy*Math.sin(a))/d:1;
+    q.p=Math.max(0,grab.p0+d*clamp((c+.6)/.9)/G.D);q.da=grab.da0+Math.tanh(wrap(t-grab.t0)*1.5)*.3;
+    if(q.p>=1)detach(ctx,G,q,x,y);return true;},
+  release(ctx){letGo(ctx);if(grab?.plate&&out&&Math.hypot(out.ox,out.oy)>ctx.hole.R*.4)drop(ctx);
     grab=null;tried=false;},
   tap(ctx,x,y){
+    if(out?.ph==='drag')return;
     if(out&&out.ph!=='fall'){if(out.ph==='held'&&lastF&&inside(lastF,x,y)){inp.focus({preventScroll:true});return;}drop(ctx);}
     const q=hit(ctx,geometry(ctx),x,y,34);if(q)q.p=Math.max(q.p,.3);},
   key(ctx,e){if(e.key!=='Enter'&&e.key!=='ArrowUp'||e.target.closest?.('button'))return;
     const q=waiting(ctx.t);if(!q)return;ghosted=true;
     q.p+=e.key==='Enter'?1:.35;if(q.p>=1)catchQ(ctx,geometry(ctx),q);},
-  back(ctx){if(!out||out.ph==='fall')return false;drop(ctx);return true;},
+  back(ctx){if(!out||out.ph==='fall')return false;if(out.ph==='drag')slip(ctx);else drop(ctx);return true;},
 };

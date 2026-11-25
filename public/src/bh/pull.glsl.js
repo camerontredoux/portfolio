@@ -70,6 +70,7 @@ vec4 pull(vec2 cell){
   if(pull_smm.y>0.&&late){
     vec4 S=pull_sm; float p=pull_smm.x, cv=pull_smm.z;
     float da=atan(sin(th-S.x),cos(th-S.x)), u=da/(2.*S.w)+.5, v=(r-(S.y-S.z))/(2.*S.z);
+    vec2 uv=sin(S.x)>0.?1.-vec2(u,v):vec2(u,v);                       // below the hole the glyphs turn round to stay upright
     if(cv>0.){
       float tt=abs(da)*r, sz=2.5*w_cell;
       for(int c=0;c<2;c++){
@@ -82,8 +83,8 @@ vec4 pull(vec2 cell){
     }
     if(u>=0.&&u<=1.&&v>=0.&&v<=1.){
       float sharp=mix(.1,1.,p);
-      float us=clamp(u+(hh(cell+floor(pull_t*5.)*.37)-.5)*(1.-sharp)*.5,0.,1.);
-      vec3 tc=texture(pull_tx,vec2(us,1.-v)).rgb;
+      float us=clamp(uv.x+(hh(cell+floor(pull_t*5.)*.37)-.5)*(1.-sharp)*.5,0.,1.);
+      vec3 tc=texture(pull_tx,vec2(us,1.-uv.y)).rgb;
       float env=smoothstep(0.,.05+.22*(1.-sharp),min(u,1.-u))*smoothstep(0.,.03+.08*(1.-sharp),min(v,1.-v));
       float Ls=(dot(tc,vec3(.3,.59,.11))*mix(.8,1.15,sharp)+.3)*pull_smm.y;   // blended over the disc, so its ends fade into it, never cut it
       vec3 cs=mix(pull_hue(Ls*.75+.3*p),mix(BONE,tc*1.1+.04,.7),smoothstep(.7,1.,p)*.4);
