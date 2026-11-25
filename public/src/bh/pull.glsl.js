@@ -1,9 +1,31 @@
 export default `
-uniform vec4 pull_q[8],pull_qm[8]; uniform vec3 pull_h,pull_spin; uniform float pull_n,pull_t;
-uniform vec2 pull_heat; uniform vec4 pull_pc,pull_pf;
-float pull_stars(vec2 q,float cellsPerUnit){vec2 g=floor(q*cellsPerUnit);return hh(g)>.982?.45+.6*hh(g+7.):0.;}
+uniform vec4 pull_q[8],pull_qm[8],pull_sm,pull_smm; uniform vec3 pull_h,pull_spin; uniform float pull_n,pull_t;
+uniform vec2 pull_heat; uniform vec4 pull_pc,pull_pf; uniform sampler2D pull_tx;
+float pull_sky(vec2 q,float cellsPerUnit){
+  vec2 g=floor(q*cellsPerUnit); float L=hh(g)>.982?.45+.6*hh(g+7.):0.;
+  // the reference background band, turned to lie along the tilted ring (tl=.28): thick and streaky at the lower
+  // left, it narrows through the hole and thins out toward the upper right
+  float b=dot(q,vec2(.276,.961)), a=dot(q,vec2(.961,-.276)), k=smoothstep(-7.,7.,a);
+  float w2=mix(2.4,.08,k), dens=mix(1.3,.35,k);
+  float st=fbm(vec2(a*.45,b*3.2)+3.)*.6+fbm(q*2.6)*.4;   // streaks run along the band
+  return L+exp(-b*b/w2)*(.12+.55*st)*.6*dens;
+}
+// The bz disc itself, so entering is one disc transforming: Pull starts with it exactly as bz drew it (bhDiscX's
+// mapping), then stretches it outward and flattens it. Spinning pulls it back in tight.
+// Lensing grows in with it: above the hole the disc's own coordinates bend from the flat ellipse into a circle
+// hugging the shadow, so its far side arches over the top as one continuous surface, with no seam where it meets
+// the flat disc. Its underside shows as a dim arc just below the shadow.
+// Pull's disc is the bz view's black hole zoomed in (bhDiscZ), so the two can't drift apart
+float pull_ring(vec2 q,float r,out bool front){
+  float I=bhDiscZ(q,pull_spin,pull_t,0.,true,smoothstep(.3,1.,w_e));
+  front=r<1.03&&I>0.;
+  return I;
+}
 const vec3 pull_EMBER=vec3(.95,.34,.08),pull_AMBER=vec3(1.,.66,.24),pull_WHITE=vec3(1.,.97,.86);
 vec3 pull_hue(float c){c=clamp(c,0.,1.);return c<.5?mix(pull_EMBER,pull_AMBER,c*2.):mix(pull_AMBER,pull_WHITE,c*2.-1.);}
+// zoomed in, the disc goes to the old Pull's dim rust, pale only at its hottest
+vec3 pull_rust(float c){c=clamp(c,0.,1.);
+  return c<.5?mix(vec3(.42,.17,.08),vec3(.70,.31,.11),c*2.):c<.8?mix(vec3(.70,.31,.11),vec3(.86,.46,.20),(c-.5)/.3):mix(vec3(.86,.46,.20),vec3(.96,.78,.56),(c-.8)/.2);}
 vec4 pull_plate(vec2 s,vec2 cell){
   if(pull_pf.z<=0.||(pull_pf.x<1.&&hh(cell*1.3)>pull_pf.x)) return vec4(-1.);
   float g=pull_pf.w, tk=floor(pull_t*12.), row=floor(cell.y/2.);
@@ -16,17 +38,25 @@ vec4 pull_plate(vec2 s,vec2 cell){
 }
 vec4 pull(vec2 cell){
   vec2 s=vec2((cell.x+.5)*w_cell,w_scr.y-(cell.y+.5)*w_cell);
-  float rv=distance(s,w_ctr.xy), rev=w_rev+w_ctr.z*(1.-w_e);
-  if(rv>rev) return vec4(0);
+  // Pull sits on the bz hole while the camera grows it, and takes the screen over cell by cell, a little sooner near the hole
   vec2 d=s-pull_h.xy; float r=length(d), Rh=pull_h.z, x=r/Rh, th=atan(d.y,d.x);
+  if(hh(cell*.731+2.)*.75+.25*clamp((x-1.)/5.,0.,1.)>=smoothstep(.05,.4,w_e)) return vec4(0);
+  bool late=hh(cell*.29+9.)<smoothstep(.8,1.,w_e);
   vec4 P=pull_plate(s,cell);
-  float L=bhDisc(d/Rh,pull_spin,w_t,0.,true);
-  bool shadow=x<1.03&&L<=0.;
-  if(L<=0.&&!shadow) L=pull_stars(d/r*(x-2.4/x),Rh/w_cell)*smoothstep(1.,1.7,x);
-  vec3 col=pull_hue(L*.72+pull_heat.x*.55);
+  bool shadow=r<Rh;
+  float L=0.; vec3 col=pull_hue(pull_heat.x*.3);
+  if(!shadow){
+    float Re=1.55;
+    L=pull_sky(d/r*(x-Re*Re/x)+vec2(pull_t*.004,0.),Rh/w_cell)*mix(.3,1.,smoothstep(1.,1.7,x));
+    L*=smoothstep(.35,1.,w_e)*mix(.25,1.,smoothstep(1.8,3.5,x));
+    col=pull_hue(L*.45+pull_heat.x*.3)*.62;   // the reference reads dim red-brown (~#6E3620), not bright orange
+  }
+  L*=bhRingDark(d/Rh,x,.2,smoothstep(.3,1.,w_e));
+  {bool nf; float R=pull_ring(d/Rh,x,nf), m=smoothstep(.3,1.,w_e), Rd=R*mix(1.,.6,m);   // fewer lit cells zoomed in, so it reads dotted
+   if(Rd>L||nf){L=Rd;col=mix(pull_hue(R*.55+pull_heat.x*.3),pull_rust(R*.5+pull_heat.x*.3),m);}}
   float fx=pull_heat.y;
   if(fx>0.){float fl=fx*1.2*exp(-pow((x-1.1)/(.06+.5*(1.-fx)),2.));if(fl>L){L=fl;col=pull_WHITE;}}
-  for(int j=0;j<8;j++){if(float(j)>=pull_n)break;
+  for(int j=0;j<8;j++){if(float(j)>=pull_n||!late)break;
     vec4 A=pull_q[j],B=pull_qm[j];
     if(B.x<=0.) continue;
     vec2 o=s-A.xy, dir=vec2(cos(A.z),sin(A.z));
@@ -36,21 +66,32 @@ vec4 pull(vec2 cell){
       float f=1.-along/A.w, l=f*.95*B.x*(pull_t>0.?.7+.3*hh(vec2(floor(along/w_cell),floor(pull_t*10.))):1.);
       if(l>L){L=l;col=B.y>.5?pull_EMBER:mix(pull_EMBER,pull_AMBER,f);}
     }
-    if(B.z>0.){
-      vec2 dq=A.xy-pull_h.xy; float rq=length(dq), da=atan(sin(th-atan(dq.y,dq.x)),cos(th-atan(dq.y,dq.x)));
+  }
+  if(pull_smm.y>0.&&late){
+    vec4 S=pull_sm; float p=pull_smm.x, cv=pull_smm.z;
+    float da=atan(sin(th-S.x),cos(th-S.x)), u=da/(2.*S.w)+.5, v=(r-(S.y-S.z))/(2.*S.z);
+    if(cv>0.){
       float tt=abs(da)*r, sz=2.5*w_cell;
       for(int c=0;c<2;c++){
-        float yy=r-rq-(3.+3.5*float(c))*w_cell;
+        float yy=r-S.y-S.z-(2.+3.5*float(c))*w_cell;
         if(yy>=0.&&yy<=sz&&tt<sz&&abs(sz-tt-yy)<.75*w_cell){
-          float on=pull_t>0.?step(fract(pull_t*.7-float(c)*.3+float(j)*.11),.5):1.;
-          L=max(L,.95*B.z*mix(.35,1.,on));col=pull_AMBER;
+          float on=pull_t>0.?step(fract(pull_t*.7-float(c)*.3),.5):1.;
+          L=max(L,.95*cv*mix(.35,1.,on));col=pull_AMBER;
         }
       }
     }
+    if(u>=0.&&u<=1.&&v>=0.&&v<=1.){
+      float sharp=mix(.1,1.,p);
+      float us=clamp(u+(hh(cell+floor(pull_t*5.)*.37)-.5)*(1.-sharp)*.5,0.,1.);
+      vec3 tc=texture(pull_tx,vec2(us,1.-v)).rgb;
+      float env=smoothstep(0.,.05+.22*(1.-sharp),min(u,1.-u))*smoothstep(0.,.03+.08*(1.-sharp),min(v,1.-v));
+      float Ls=(dot(tc,vec3(.3,.59,.11))*mix(.8,1.15,sharp)+.3)*pull_smm.y;   // blended over the disc, so its ends fade into it, never cut it
+      vec3 cs=mix(pull_hue(Ls*.75+.3*p),mix(BONE,tc*1.1+.04,.7),smoothstep(.7,1.,p)*.4);
+      float k=env*min(pull_smm.y,1.); L=mix(L,Ls,k); col=mix(col,cs,k);
+    }
   }
   if(P.a>=0.){L=P.a;col=P.rgb;}
-  else if(shadow&&L<=0.) return hh(cell*.731+2.)<smoothstep(.1,.7,w_e)?vec4(0.,0.,0.,.5):vec4(0);
-  if(rv>rev-3.*w_cell){L=.95;col=pull_hue(.85);}
+  else if(shadow&&L<=0.) return vec4(0.,0.,0.,.5);
   return vec4(col*mix(.76,1.05,clamp(L,0.,1.)),L>b8(cell)*.95+.04?1.:.5);
 }
 `;
