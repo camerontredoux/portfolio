@@ -62,10 +62,12 @@ float bhDiscZ(vec2 q,vec3 spin,float t,float w,bool big,float z){
   rd=1.25+(rd-1.25)/gro;
   float rg=rd;   // on-screen radius: grooves are spaced by this, so they stay distinct while the disk tightens
   rd=1.25+max(rd-1.25,0.)*(1.+.6*s)+min(rd-1.25,0.);                 // and the disk narrows into a tight band
-  float I=d.y<0.&&r<1.03?0.:bhTex(rd,rg,th,spin,t,z);                 // the far half hides behind the horizon
+  // Zoomed in, the travelling pulse (bhWave) also lights the disc's own dots as it passes, strongest at the inner
+  // edge and fading out across the disc
+  float I=d.y<0.&&r<1.03?0.:bhTex(rd,rg,th,spin,t,z)*(1.+z*1.4*bhWave(th,t)*exp(-max(rd-1.25,0.)/.9));   // the far half hides behind the horizon
   if(cy>0.&&r>1.03&&z>0.){                                            // the underside, bent round below the shadow
-    float rb=1.25+(r-1.1)*1.75/(W*.35);
-    I=max(I,bhTex(rb,rb,-atan(cy,cx),spin,t,z)*smoothstep(.25,.8,cy/r)*exp(-pow(max(r-1.1,0.)/(.28*W),2.))*.6*z);
+    float rb=1.25+(r-1.1)*1.75/(W*.35), a=atan(cy,cx);
+    I=max(I,bhTex(rb,rb,-a,spin,t,z)*smoothstep(.25,.8,cy/r)*exp(-pow(max(r-1.1,0.)/(.28*W),2.))*.6*z*(1.+1.8*bhWave(a,t)));
   }
   float pg=bhGap(vec2(cx,cy),r,asp);
   I*=bhRingDark(q,r,asp,z);
