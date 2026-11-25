@@ -1,6 +1,6 @@
 import S from './story.js';
 const KEY='pull.box',MAXQ=4,SCRIPTED=2,REVEAL=3;
-const RISE=1.1,FALL=.65,FADE=.25,TYPE=16,PAIR=.6,AMB=1.4,RING=1.1,ESC=2.6,SMR=1.16,FLARE=1.6,LOG=12,KEEP=.45,GAP=1.2,ENDS=2.5;
+const RISE=1.1,FALL=.65,FADE=.25,TYPE=16,PAIR=.6,AMB=1.4,RING=1.1,ESC=2.6,SMR=1.16,FLARE=1.6,LOG=12,KEEP=.45,GAP=1.2,ENDS=2.5,REACH=.75,CARD=.8,EDGE=24;
 const GLY='#%&*+=<>/\\|[]{}?!$^~:;01';
 const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
 let mouse=matchMedia('(hover: hover)').matches;
@@ -55,8 +55,12 @@ function step(t,dt){
     if(q.sm||age<PAIR)continue;const x=(age-PAIR)/AMB;
     q.r=reduce?RING+.2:RING+(ESC-RING)*x*x;q.al=1-clamp(x);}
   Q=Q.filter(q=>q.al>0);}
-function smear(ctx,G,q){const k=ease(Math.min(1,q.p)),g=reduce?1:ease(clamp((ctx.t-q.t0-PAIR)/.5));
-  const h=G.Rh*(.15+.17*k),R=G.Rh*SMR+h+q.p*G.D+G.Rh*(.07*tug(ctx.t,q.s)+.05*q.hv)*(1-k),a=q.a+q.da;
+function edge(ctx,G,a){const c=Math.cos(a),s=Math.sin(a);
+  return Math.min(c>0?(ctx.W-G.cx)/c:c<0?-G.cx/c:1e9,s>0?(ctx.H-G.cy)/s:s<0?-G.cy/s:1e9);}
+function resistedStretch(ctx,G,a,base,h,p){const L=Math.max(24,Math.min(G.D*.6,edge(ctx,G,a)-base-h-EDGE));
+  return L*(1-Math.exp(-2*p))/(1-Math.exp(-2));}
+function smear(ctx,G,q){const p=Math.min(1,q.p),k=ease(p),g=reduce?1:ease(clamp((ctx.t-q.t0-PAIR)/.5)),a=q.a+q.da;
+  const h=G.Rh*(.15+.17*k),base=G.Rh*SMR+h,R=base+resistedStretch(ctx,G,a,base,h,p)+G.Rh*(.07*tug(ctx.t,q.s)+.05*q.hv)*(1-k);
   return {a,R,h,w:G.Rh*(1-.15*k)*g/R,x:G.cx+Math.cos(a)*R,y:G.cy+Math.sin(a)*R};}
 function hit(ctx,G,x,y,tol){const q=waiting(ctx.t);if(!q)return null;
   const M=smear(ctx,G,q),along=(Math.abs(wrap(Math.atan2(y-G.cy,x-G.cx)-M.a))-M.w)*M.R,across=Math.abs(Math.hypot(x-G.cx,y-G.cy)-M.R)-M.h;
@@ -66,18 +70,18 @@ function ink(gl,t){const tk=reduce?0:Math.floor(t*6),ri=nextRec(),key=ri+'.'+tk;
   const g=INK.getContext('2d');g.fillStyle='#222';g.fillRect(0,0,INK.width,INK.height);g.fillStyle='#fff';
   g.font='800 78px ui-monospace,Menlo,monospace';g.textBaseline='middle';g.save();g.scale(INK.width/g.measureText(s).width,1);g.fillText(s,0,INK.height/2);g.restore();
   gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,INK);}
-// A smear pulled free becomes a card that stays on the pointer and grows the further you drag it. Let go once it's
-// at least KEEP of full size and it's caught, where you let go; let go sooner and it falls back into the hole.
-function detach(ctx,G,q,x,y){const P=smear(ctx,G,q),ri=nextRec();Q.splice(Q.indexOf(q),1);tugged=true;ghosted=true;grab={card:true};
-  out={w:have.length,ri,r:RECS[ri],ph:'drag',q,t0:ctx.t,sx:x,sy:y,dx:x,dy:y,offx:P.x-x,offy:P.y-y,px:P.x,py:P.y,ox:0,oy:0,k:.15,k0:.15,to:null};
+const cardK=P=>clamp(.15+.85*(P-1)/CARD);
+function detach(ctx,G,q,x,y){const P=smear(ctx,G,q),ri=nextRec();Q.splice(Q.indexOf(q),1);tugged=true;ghosted=true;
+  out={w:have.length,ri,r:RECS[ri],ph:'drag',q,t0:ctx.t,dx:x,dy:y,ax0:P.x,ay0:P.y,px:P.x,py:P.y,ox:0,oy:0,k:.15,k0:.15,to:null};
   fill(ctx);}
-function land(ctx,here){have.push(out.ri);if(!RECS.some((r,i)=>!have.includes(i)&&r.words.has(lastGrep)))lastGrep=null;save();nextAt=ctx.t+2.5-1.5*have.length/N;tiles();
-  Object.assign(out,{ph:'rise',t0:ctx.t,x0:out.px,y0:out.py,k0:out.k,ax:here?out.px:null,ay:here?out.py:null,q:null});grab=null;fill(ctx);
+function reattach(q,P){out=null;q.p=P;Q.push(q);}
+function land(ctx){have.push(out.ri);if(!RECS.some((r,i)=>!have.includes(i)&&r.words.has(lastGrep)))lastGrep=null;save();nextAt=ctx.t+2.5-1.5*have.length/N;tiles();
+  Object.assign(out,{ph:'rise',t0:ctx.t,x0:out.px,y0:out.py,k0:out.k,q:null});grab=null;fill(ctx);
   const wh=ctx.el.querySelector('.wh');if(wh&&have.length>=N)wh.textContent=S.hintEnd;}
 function slip(ctx){const q=out.q;q.p=0;q.da=0;Q.push(q);const M=smear(ctx,geometry(ctx),q);
   Object.assign(out,{ph:'fall',t0:ctx.t,k0:out.k,fx:out.px,fy:out.py,to:{x:M.x,y:M.y},q:null});grab=null;}
-function letGo(ctx){if(out?.ph==='drag'){if(out.k>=KEEP)land(ctx,true);else slip(ctx);}}
-function catchQ(ctx,G,q){detach(ctx,G,q,0,0);out.k=0;land(ctx,false);}
+function letGo(ctx){if(out?.ph==='drag'){if(out.k>=KEEP)land(ctx);else slip(ctx);}}
+function catchQ(ctx,G,q){detach(ctx,G,q,0,0);out.k=0;land(ctx);}
 function reset(){have=[];known=new Map();guess={};locked=new Set();lastGrep=null;endAt=-1;save();Q=[];nextAt=C.t+2;inkKey='';flareAt=-99;tiles();
   const wh=C.el.querySelector('.wh');if(wh)wh.textContent=S.hint;}
 
@@ -89,14 +93,14 @@ function drop(ctx){if(!out||out.ph==='fall')return;
   out.to={x:r.left+r.width/2,y:r.top+r.height/2};out.fx=out.px;out.fy=out.py;out.k0=out.k;out.ph='fall';out.t0=ctx.t;inp.blur();}
 function rect(ctx){const w=Math.min(340,ctx.W-32),h=read.offsetHeight,vv=visualViewport,{x:cx,y:cy,R}=ctx.hole;
   const bot=Math.max(12,Math.min(ctx.H-124,vv?vv.offsetTop+vv.height-12:ctx.H)-h),sx=cx+R*1.35;
-  if(out?.ax!=null)return {x:clamp(out.ax-w/2,12,Math.max(12,ctx.W-w-12)),y:clamp(out.ay-h/2,12,bot),w,h};
   if(ctx.W-sx-20>=w)return {x:sx,y:clamp(cy-h/2,12,bot),w,h};
   return {x:(ctx.W-w)/2,y:clamp(cy+R*1.2,12,bot),w,h};}
 const box=(R,k)=>({hw:2+(R.w/2-2)*ease(clamp(k/.55)),hh:2+(R.h/2-2)*ease(clamp((k-.45)/.55))});
 function morph(ctx){
-  if(out.ph==='drag'){const f=Math.exp(-(ctx.t-out.t0)*6),x=out.dx+out.offx*f,y=out.dy+out.offy*f,R=rect(ctx);   // slides under the pointer
-    const k=out.k=clamp(.15+.85*Math.hypot(out.dx-out.sx,out.dy-out.sy)/(geometry(ctx).D*1.3));
-    out.px=x;out.py=y;return {R,fade:1,k,x,y,...box(R,k)};}
+  if(out.ph==='drag'){const R=rect(ctx),k=out.k,e=ease(k),hw=6+(R.w/2-6)*e,hh=6+(R.h/2-6)*e;
+    const lx=(out.dx-out.ax0)*.12,ly=(out.dy-out.ay0)*.12,l=Math.hypot(lx,ly),s=l>24?24/l:1;
+    const x=clamp(out.ax0+lx*s,hw+12,ctx.W-hw-12),y=clamp(out.ay0+ly*s,hh+12,ctx.H-hh-12);
+    out.px=x;out.py=y;return {R,fade:1,k,x,y,hw,hh};}
   const x=clamp((ctx.t-out.t0)/(reduce?FADE:out.ph==='rise'?RISE:FALL));let k=1,fade=1,m=1;
   if(out.ph==='rise'){if(reduce)fade=x;else{m=1-(1-x)**3;k=out.k0+(1-out.k0)*m;}
     if(x>=1){out.ph='held';out.t0=ctx.t;if(mouse)inp.focus({preventScroll:true});}}
@@ -235,12 +239,13 @@ export default {
       if(out?.ph==='held'&&lastF&&inside(lastF,x,y))grab={plate:true,x0:x,y0:y,ox:out.ox,oy:out.oy};
       else{const q=hit(ctx,G,x,y,40);if(q)grab={q,x0:x,y0:y,t0:t,p0:q.p,da0:q.da};}}
     if(!grab)return false;
-    if(grab.card){if(out?.ph==='drag'){out.dx=x;out.dy=y;}return true;}
     if(grab.plate){if(out?.ph!=='held'){grab=null;return true;}out.ox=grab.ox+(x-grab.x0)*.8;out.oy=grab.oy+(y-grab.y0)*.8;return true;}
-    const q=grab.q;if(!Q.includes(q)){grab=null;return true;}
     // pull in any direction that isn't back into the hole; sideways only swings the smear a little, never round the ring
-    const dx=x-grab.x0,dy=y-grab.y0,d=Math.hypot(dx,dy),a=q.a+grab.da0,c=d?(dx*Math.cos(a)+dy*Math.sin(a))/d:1;
-    q.p=Math.max(0,grab.p0+d*clamp((c+.6)/.9)/G.D);q.da=grab.da0+Math.tanh(wrap(t-grab.t0)*1.5)*.3;
+    const q=grab.q,dx=x-grab.x0,dy=y-grab.y0,d=Math.hypot(dx,dy),a=q.a+grab.da0,c=d?(dx*Math.cos(a)+dy*Math.sin(a))/d:1;
+    const P=Math.max(0,grab.p0+d*clamp((c+.6)/.9)/(G.D*REACH));
+    if(out?.ph==='drag'&&out.q===q){out.dx=x;out.dy=y;if(P>=1)out.k=cardK(P);else reattach(q,P);return true;}
+    if(!Q.includes(q)){grab=null;return true;}
+    q.p=P;q.da=grab.da0+Math.tanh(wrap(t-grab.t0)*1.5)*.3;
     if(q.p>=1)detach(ctx,G,q,x,y);return true;},
   release(ctx){letGo(ctx);if(grab?.plate&&out&&Math.hypot(out.ox,out.oy)>ctx.hole.R*.4)drop(ctx);
     grab=null;tried=false;},
