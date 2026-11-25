@@ -15,23 +15,11 @@ float pull_sky(vec2 q,float cellsPerUnit){
 // Lensing grows in with it: above the hole the disc's own coordinates bend from the flat ellipse into a circle
 // hugging the shadow, so its far side arches over the top as one continuous surface, with no seam where it meets
 // the flat disc. Its underside shows as a dim arc just below the shadow.
+// Pull's disc is the bz view's black hole zoomed in (bhDiscZ), so the two can't drift apart
 float pull_ring(vec2 q,float r,out bool front){
-  float m=smoothstep(.3,1.,w_e), s=pull_spin.y;
-  float gro=mix(1.,2.6,m)/(1.+.7*s), asp=mix(.3,.2,m)*(1.-.35*s), W=1.05/(1.+.5*s);
-  float tl=.28; vec2 t=vec2(cos(tl)*q.x-sin(tl)*q.y,sin(tl)*q.x+cos(tl)*q.y);
-  float ph=atan(t.y,t.x);
-  vec2 d=bhBend(t,r,asp,gro,W,mix(BH_LENS,1.,m));                       // the bz view's bend, deepening as you zoom in
-  float rd=length(d), th=atan(d.y,d.x);
-  rd=1.25+(rd-1.25)/gro; float rg=rd;
-  rd=1.25+max(rd-1.25,0.)*(1.+.6*s)+min(rd-1.25,0.);
-  float I=t.y<0.&&r<1.03?0.:bhTex(rd,rg,th,pull_spin,pull_t);
+  float I=bhDiscZ(q,pull_spin,pull_t,0.,true,smoothstep(.3,1.,w_e));
   front=r<1.03&&I>0.;
-  if(t.y>0.&&r>1.03&&m>0.){                                              // the underside, bent round below the shadow
-    float rb=1.25+(r-1.1)*1.75/(W*.35);
-    float B=bhTex(rb,rb,-ph,pull_spin,pull_t)*smoothstep(.25,.8,t.y/r)*exp(-pow(max(r-1.1,0.)/(.28*W),2.))*.6;
-    I=max(I,B*m);
-  }
-  return max(I<.08?0.:I,bhGlow(0.,r,rd,pull_t,0.,true,1.-m)*bhGap(t,r,asp));   // same ring as the bz view as it hands over
+  return I;
 }
 const vec3 pull_EMBER=vec3(.95,.34,.08),pull_AMBER=vec3(1.,.66,.24),pull_WHITE=vec3(1.,.97,.86);
 vec3 pull_hue(float c){c=clamp(c,0.,1.);return c<.5?mix(pull_EMBER,pull_AMBER,c*2.):mix(pull_AMBER,pull_WHITE,c*2.-1.);}
